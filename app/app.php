@@ -28,7 +28,7 @@ class App
 	{
 		foreach(array(_APPPATH, APPPATH, HOSTAPPPATH) as $path)
 		{
-			$file = $path.DIRECTORY_SEPARATOR.$abs.'.php';
+			$file = $path.DIRECTORY_SEPARATOR.ucfirst($abs).'.php';
 			if( \setRequire($file) === FALSE )
 			{
 				\BOOT\Log::w('ERROR', 'Do not found: '.$file);
@@ -50,8 +50,7 @@ class App
 
 		if( in_array( $abs, array('unit', 'model', 'valid') ) === FALSE )
 		{
-			\BOOT\Log::w('ERROR', 'Not supported: '.$abs.' > '.$class);
-			return FALSE;
+			throw new \Exception('Not supported singleton type: '.$abs);
 		}
 
 		self::loadAbstract($abs);
@@ -80,8 +79,7 @@ class App
 
 			if( \setRequire( $file ) === FALSE )
 			{
-				\BOOT\Log::w('ERROR', 'Do not found file: '.$file);
-				return FALSE;
+				throw new \Exception('Cannot find singleton file: '.$file);
 			}
 		}
 
@@ -91,8 +89,7 @@ class App
 			return self::$instances[$abs][$class];
 		}
 
-		\BOOT\Log::w('ERROR', 'Do not create the object: '.$file);
-		return FALSE;
+		throw new \Exception('Cannot create singleton object. Class not found: '.$c);
 	}
 
 	/**
@@ -108,11 +105,11 @@ class App
 
 		if( \setRequire( $f ) === FALSE )
 		{
-			\BOOT\Log::w('ERROR', 'Do not found: File - '.$f);
+			throw new \Exception('Controller file not found: '.$f);
 		}
 		if( ! class_exists( $c ) )
 		{
-			\BOOT\Log::w('ERROR', 'Do not found: Class - '.$c);
+			throw new \Exception('Controller class not found: '.$c);
 		}
 
 		if( ! method_exists( $c, $m ) )
@@ -125,11 +122,17 @@ class App
 			}
 			else
 			{
-				\BOOT\Log::w('ERROR', 'Do not found: Method - '.$c.'::'.$m);
+				throw new \Exception('Method not found in controller: '.$c.'::'.$m);
 			}
 		}
 
-		$control = new $c( $f, $c, $m );
+		$router   = Core::get('Router');
+		$input    = Core::get('Input');
+		$security = Core::get('Security');
+		$session  = Core::get('Session');
+		$crypt    = Core::get('Crypt');
+
+		$control = new $c( $f, $c, $m, $router, $input, $security, $session, $crypt );
 		if( $c != $m )
 		{
 			$control->$m();

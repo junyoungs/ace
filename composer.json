@@ -1,0 +1,24 @@
+{
+    "name": "junyoung-park/php-framework",
+    "description": "A custom PHP framework.",
+    "type": "project",
+    "license": "LGPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Junyoung Park"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "APP\\": "app/",
+            "BOOT\\": "boot/",
+            "CORE\\": "core/",
+            "PROJECT\\UNIT\\": "unit/",
+            "PROJECT\\MODEL\\": "model/",
+            "PROJECT\\VALID\\": "valid/"
+        }
+    }
+}

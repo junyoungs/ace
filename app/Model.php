@@ -13,7 +13,7 @@ use \BOOT\Log;
  * @namespace	\APP
  */
 
-abstract class model
+abstract class Model
 {
 	public	$db		= NULL;
 	public	$class	= NULL;
@@ -52,9 +52,24 @@ abstract class model
 		return ' /* '.$file.' >> Line '.$line.' */ ';
 	}
 
+	/**
+	 * Executes a prepared SQL query.
+	 *
+	 * @param string $sql The SQL query with placeholders (?).
+	 * @param array $params The parameters to bind to the query.
+	 * @return \mysqli_result|bool The result of the query.
+	 */
+	final public function query($sql, $params = [])
+	{
+		return $this->db->sql->query($sql, $params);
+	}
+
+	/**
+	 * @deprecated This method is vulnerable to SQL injection. Use query() with prepared statements instead.
+	 */
 	final public function execute($sql)
 	{
-		return $this->db->sql->execute($sql);
+		throw new \Exception("execute() is deprecated due to security risks. Use query() with prepared statements.");
 	}
 
 	/**

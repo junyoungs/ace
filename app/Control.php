@@ -20,23 +20,26 @@ abstract class Control
 	public $method = NULL;
 
 	//Public Core Classes
-	public $input = NULL;
-	public $security = NULL;
+	public $router;
+	public $input;
+	public $security;
+	public $session;
+	public $crypt;
 
 	protected $view = '';
 
-	function __construct($file, $class, $method)
+	function __construct($file, $class, $method, $router, $input, $security, $session, $crypt)
 	{
 		$this->file		= $file;
 		$this->class	= $class;
 		$this->method	= $method;
 
-		//Public Core Classes
-		$this->router   = &Core::get('Router');
-		$this->input    = &Core::get('Input');
-		$this->security = &Core::get('Security');
-		$this->session  = &Core::get('Session');
-		$this->crypt    = &Core::get('Crypt');
+		// Injected Core Classes
+		$this->router   = $router;
+		$this->input    = $input;
+		$this->security = $security;
+		$this->session  = $session;
+		$this->crypt    = $crypt;
 	}
 
 	final public function &db($driver, $master=FALSE)

@@ -8,12 +8,25 @@ class Sql
 	public $db				= NULL;
 
 	/**
+	 * Execute a prepared statement query. This is the new, secure method.
+	 *
+	 * @param string $sql SQL query with placeholders (?)
+	 * @param array  $params Parameters to bind
+	 * @return \mysqli_result|bool
+	 */
+	final public function query($sql, $params = [])
+	{
+		return $this->db->connector->prepareQuery($sql, $params);
+	}
+
+	/**
 	 * Excute sql
 	 * @param String $sql
+	 * @deprecated This method is vulnerable to SQL injection. Use query() with prepared statements instead.
 	 */
 	final public function execute($sql)
 	{
-		return $this->db->connector->query( $this->secureSql($sql) );
+		throw new \Exception("execute() is deprecated due to security risks. Use query() with prepared statements.");
 	}
 
 	/**
