@@ -32,6 +32,11 @@
 	\setRequire( WORKSPATH.DIRECTORY_SEPARATOR.'boot'.DIRECTORY_SEPARATOR.'boot.php' );
 	\setRequire( WORKSPATH.DIRECTORY_SEPARATOR.'core'.DIRECTORY_SEPARATOR.'Route.php' );
 	\setRequire( WORKSPATH.DIRECTORY_SEPARATOR.'core'.DIRECTORY_SEPARATOR.'QueryBuilder.php' );
+	\setRequire( WORKSPATH.DIRECTORY_SEPARATOR.'database'.DIRECTORY_SEPARATOR.'DatabaseDriverInterface.php' );
+	\setRequire( WORKSPATH.DIRECTORY_SEPARATOR.'core'.DIRECTORY_SEPARATOR.'RedisClient.php' );
+	\setRequire( WORKSPATH.DIRECTORY_SEPARATOR.'core'.DIRECTORY_SEPARATOR.'Cache.php' );
+	\setRequire( WORKSPATH.DIRECTORY_SEPARATOR.'core'.DIRECTORY_SEPARATOR.'Event.php' );
+	\setRequire( WORKSPATH.DIRECTORY_SEPARATOR.'core'.DIRECTORY_SEPARATOR.'LockProvider.php' );
 	\BOOT\Log::w('INFO', 'Boot Done.');
 
 /*

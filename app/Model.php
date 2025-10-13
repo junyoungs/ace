@@ -98,7 +98,7 @@ abstract class Model
 	 */
 	final public function query($sql, $params = [])
 	{
-		return $this->db->sql->query($sql, $params);
+		return $this->db->prepareQuery($sql, $params);
 	}
 
 	/**

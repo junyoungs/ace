@@ -106,7 +106,7 @@ class QueryBuilder
             $sql .= " WHERE " . implode(' AND ', $this->wheres);
         }
 
-        $result = $this->db->sql->query($sql, $this->bindings);
+        $result = $this->db->prepareQuery($sql, $this->bindings);
 
         $data = [];
         if ($result && $result->num_rows > 0) {
@@ -142,7 +142,7 @@ class QueryBuilder
 
         $sql = "INSERT INTO `{$this->table}` ({$columns}) VALUES ({$placeholders})";
 
-        $result = $this->db->sql->query($sql, array_values($values));
+        $result = $this->db->prepareQuery($sql, array_values($values));
         return $result !== false;
     }
 
@@ -169,10 +169,9 @@ class QueryBuilder
         }
 
         $allBindings = array_merge($updateBindings, $this->bindings);
-        $result = $this->db->sql->query($sql, $allBindings);
+        $this->db->prepareQuery($sql, $allBindings);
 
-        // mysqli_result does not have affected_rows directly, access it from the connection
-        return $this->db->connector->conn->affected_rows;
+        return $this->db->getAffectedRows();
     }
 
     /**
@@ -188,7 +187,7 @@ class QueryBuilder
             $sql .= " WHERE " . implode(' AND ', $this->wheres);
         }
 
-        $result = $this->db->sql->query($sql, $this->bindings);
-        return $this->db->connector->conn->affected_rows;
+        $this->db->prepareQuery($sql, $this->bindings);
+        return $this->db->getAffectedRows();
     }
 }
