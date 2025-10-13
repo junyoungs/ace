@@ -1,72 +1,48 @@
-<?php namespace CORE;
-/**
- * Core
- *
- * @author		Junyoung Park
- * @copyright	Copyright (c) 2016.
- * @license		LGPL
- * @version		1.0.0
- * @namespace	\CORE
- */
+<?php declare(strict_types=1);
+
+namespace CORE;
+
+use Exception;
 
 /**
- * ------------------------------------------------------
- * include core files
- * ------------------------------------------------------
+ * Core Service Registry
  */
 class Core
 {
-	private static $__instance  = array();
-	private static $__namespace = '\\CORE\\';
+	/** @var array<string, object> */
+	private static array $__instance  = [];
 
-	public static function &get($name)
+	public function __construct()
 	{
-		$name = trim($name);
-		if ( array_key_exists($name, self::$__instance) )
-		{
-			return self::$__instance[$name];
-		}
-
-		\BOOT\Log::w('ERROR', 'Not found core: '.$name);
-
-		return NULL;
+		$this->registerCoreServices();
 	}
 
-	public static function set($name)
+	private function registerCoreServices(): void
 	{
-		$name = trim($name);
-		if ( ! array_key_exists($name, self::$__instance) )
-		{
-			$class = self::$__namespace.$name;
-			if( class_exists($class) )
-			{
-				self::$__instance[$name] = new $class;
-			}
+		// Manually register core singletons.
+		// In a more advanced container, this would be automated.
+		self::set('Db', new Db());
+		self::set('Crypt', new Crypt());
+		self::set('Session', new Session());
+		self::set('Security', new Security());
+		self::set('Router', new Router());
+		self::set('Input', new Input());
+		self::set('Output', new Output());
+
+		if (defined('MODE') && MODE === 'development') {
+			self::set('Dev', new Dev());
+		}
+	}
+
+	public static function get(string $name): ?object
+	{
+		return self::$__instance[$name] ?? null;
+	}
+
+	public static function set(string $name, object $instance): void
+	{
+		if (!isset(self::$__instance[$name])) {
+			self::$__instance[$name] = $instance;
 		}
 	}
 }
-
-/**
- * Default Core Classes
- */
-\setRequire( _COREPATH.DIRECTORY_SEPARATOR.'crypt.php' )	!== FALSE	?	Core::set('Crypt')	    : FALSE;
-\setRequire( _COREPATH.DIRECTORY_SEPARATOR.'session.php' )	!== FALSE	?	Core::set('Session')	: FALSE;
-\setRequire( _COREPATH.DIRECTORY_SEPARATOR.'security.php' )	!== FALSE	?	Core::set('Security')	: FALSE;
-\setRequire( _COREPATH.DIRECTORY_SEPARATOR.'router.php' )	!== FALSE	?	Core::set('Router')		: FALSE;
-\setRequire( _COREPATH.DIRECTORY_SEPARATOR.'input.php' )	!== FALSE	?	Core::set('Input')		: FALSE;
-\setRequire( _COREPATH.DIRECTORY_SEPARATOR.'output.php' )	!== FALSE	?	Core::set('Output')		: FALSE;
-\setRequire( _COREPATH.DIRECTORY_SEPARATOR.'db.php' )		!== FALSE	?	Core::set('Db')			: FALSE;
-
-/**
- * Development Core Classes
- */
-if(MODE == 'development')
-{
-	\setRequire( _COREPATH.DIRECTORY_SEPARATOR.'dev.php' )	!== FALSE	?	Core::set('Dev')		: FALSE;
-}
-
-
-
-
-/* End of file core.php */
-/* Location: ./core/core.php */

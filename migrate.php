@@ -1,28 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * Simple Database Migration Runner
  */
 
-// --- Bootstrap The Framework ---
-// This is a simplified bootstrap process for the CLI environment.
-define('WORKSPATH', __DIR__);
-// We need to define PROJECTPATH, assuming it's the same as WORKSPATH for now.
-define('PROJECTPATH', __DIR__);
-
-// Required for path definitions in boot.php
-// In a real CLI app, this would be handled more robustly.
-$_SERVER['HTTP_HOST'] = 'localhost';
-require_once WORKSPATH . DIRECTORY_SEPARATOR . 'func' . DIRECTORY_SEPARATOR . 'default.php';
-\setRequire(WORKSPATH . DIRECTORY_SEPARATOR . 'boot' . DIRECTORY_SEPARATOR . 'boot.php');
-\setRequire(WORKSPATH . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'core.php');
-\setRequire(WORKSPATH . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'app.php');
-// --- End Bootstrap ---
-
+// Bootstrap the framework for CLI environment
+require __DIR__ . '/bootstrap/app.php';
 
 // Get the database connection
 try {
-    $db = \CORE\Core::get('Db')->driver('mysql', true); // Get master connection
+    // In CLI, we might want to specify the connection, but for now, we use the default.
+    $db = \CORE\Core::get('Db')->driver('mysql', true);
     echo "Database connection successful.\n";
 } catch (\Exception $e) {
     echo "Error connecting to database: " . $e->getMessage() . "\n";
@@ -32,13 +20,15 @@ try {
 /**
  * Ensure the migrations table exists.
  */
-function ensure_migrations_table_exists($db)
+function ensure_migrations_table_exists(\DATABASE\DatabaseDriverInterface $db): void
 {
     $tableName = 'migrations';
     // Check if table exists
     $result = $db->prepareQuery("SHOW TABLES LIKE ?", [$tableName]);
 
-    if ($result->rowCount() == 0) {
+    $rowCount = ($result instanceof \PDOStatement) ? $result->rowCount() : $result->num_rows;
+
+    if ($rowCount == 0) {
         echo "Migrations table not found. Creating table: {$tableName}\n";
         try {
             $createQuery = "
@@ -66,10 +56,10 @@ ensure_migrations_table_exists($db);
 // 1. Get executed migrations
 $executedMigrations = [];
 $result = $db->prepareQuery("SELECT migration FROM migrations");
-if ($result && $result->rowCount() > 0) {
-    while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
-        $executedMigrations[] = $row['migration'];
-    }
+
+$migrationsData = ($result instanceof \PDOStatement) ? $result->fetchAll(\PDO::FETCH_ASSOC) : $result->fetch_all(MYSQLI_ASSOC);
+foreach ($migrationsData as $row) {
+    $executedMigrations[] = $row['migration'];
 }
 
 // 2. Scan migration files
@@ -79,8 +69,8 @@ $pendingMigrations = [];
 
 foreach ($migrationFiles as $file) {
     if (pathinfo($file, PATHINFO_EXTENSION) === 'php') {
-        $migrationName = pathinfo($file, PATHINFO_FILENAME);
-        if (!in_array($migrationName, $executedMigrations)) {
+        $migrationNameFromFile = pathinfo($file, PATHINFO_FILENAME);
+        if (!in_array($migrationNameFromFile, $executedMigrations)) {
             $pendingMigrations[] = $file;
         }
     }
@@ -96,8 +86,8 @@ echo "Found " . count($pendingMigrations) . " new migrations to run.\n";
 
 // Get the next batch number
 $batchResult = $db->prepareQuery("SELECT MAX(batch) as max_batch FROM migrations");
-$lastBatch = $batchResult->fetchColumn() ?? 0;
-$nextBatch = $lastBatch + 1;
+$lastBatch = ($batchResult instanceof \PDOStatement) ? $batchResult->fetchColumn() : ($batchResult->fetch_assoc()['max_batch'] ?? 0);
+$nextBatch = (int)$lastBatch + 1;
 
 foreach ($pendingMigrations as $file) {
     $filePath = $migrationPath . '/' . $file;
@@ -105,8 +95,9 @@ foreach ($pendingMigrations as $file) {
 
     $migrationNameFromFile = pathinfo($file, PATHINFO_FILENAME);
 
-    // Extract class name from file name (e.g., 2025_10_13_013400_CreateUsersTable -> CreateUsersTable)
-    $className = preg_replace('/^\d{4}_\d{2}_\d{2}_\d{6}_/', '', $migrationNameFromFile);
+    // Extract class name from file name (e.g., 2025_10_13_013400_create_users_table -> CreateUsersTable)
+    $classNameString = preg_replace('/^\d{4}_\d{2}_\d{2}_\d{6}_/', '', $migrationNameFromFile);
+    $className = str_replace('_', '', ucwords($classNameString, '_'));
 
     if (!empty($className) && class_exists($className)) {
         try {

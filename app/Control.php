@@ -1,7 +1,14 @@
-<?php namespace APP;
+<?php declare(strict_types=1);
+
+namespace APP;
 
 use \CORE\Core;
-use \BOOT\Log;
+use \CORE\Router;
+use \CORE\Input;
+use \CORE\Security;
+use \CORE\Session;
+use \CORE\Crypt;
+use \DATABASE\DatabaseDriverInterface;
 
 /**
  * Control
@@ -15,88 +22,57 @@ use \BOOT\Log;
  */
 abstract class Control
 {
-	public $file = NULL;
-	public $class = NULL;
-	public $method = NULL;
+	protected string $view = '';
 
-	//Public Core Classes
-	public $router;
-	public $input;
-	public $security;
-	public $session;
-	public $crypt;
+	public function __construct(
+		public readonly ?string $file,
+		public readonly ?string $class,
+		public readonly ?string $method,
+		public readonly Router $router,
+		public readonly Input $input,
+		public readonly Security $security,
+		public readonly Session $session,
+		public readonly Crypt $crypt
+	) {}
 
-	protected $view = '';
-
-	function __construct($file, $class, $method, $router, $input, $security, $session, $crypt)
+	final public function db(string $driver, bool $master = false): DatabaseDriverInterface
 	{
-		$this->file		= $file;
-		$this->class	= $class;
-		$this->method	= $method;
-
-		// Injected Core Classes
-		$this->router   = $router;
-		$this->input    = $input;
-		$this->security = $security;
-		$this->session  = $session;
-		$this->crypt    = $crypt;
-	}
-
-	final public function &db($driver, $master=FALSE)
-	{
-		Log::w('INFO', 'Database Driver: '.strtoupper($driver).' > '.($master ? 'Master':'Slave'));
 		return Core::get('Db')->driver($driver, $master);
 	}
 
-	final public function &getDbDriver($driver)
+	final public function getDbDriver(string $driver): ?DatabaseDriverInterface
 	{
-		$__driver = &Core::get('Db')->getDriver($driver);
-		return $__driver;
+		return Core::get('Db')->getDriver($driver);
 	}
 
-	final public function &unit($unit)
-	{
-		return App::singleton('unit', $unit);
-	}
-
-	final public function &model($model)
-	{
-		return App::singleton('model', $model);
-	}
-
-	final public function &valid($valid)
-	{
-		return App::singleton('valid', $valid);
-	}
-
-	final public function cache($time=0)
+	final public function cache(int $time = 0): self
 	{
 		if(MODE !== 'development')
 		{
 			Core::get('Output')->setCache($time);
 		}
-		
+
 		return $this;
 	}
 
-	final public function setView($view)
+	final public function setView(string $view): self
 	{
 		$this->view = $view;
 		return $this;
 	}
 
-	final public function view($vars=array())
+	final public function view(array $vars = []): self
 	{
 		Core::get('Output')->setView($this->view)->setAssign($vars)->draw();
 		return $this;
 	}
 
-	final public function fetch($vars=array())
+	final public function fetch(array $vars = []): string
 	{
 		return Core::get('Output')->setView($this->view)->setAssign($vars)->fetch();
 	}
 
-	final public function layout($layout=NULL)
+	final public function layout(?string $layout = null): self
 	{
 		Core::get('Output')->setLayout($layout);
 		return $this;

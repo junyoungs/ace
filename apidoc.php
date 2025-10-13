@@ -1,21 +1,42 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * Simple API Documentation Generator
- * Scans controller files for @api-* annotations and generates an openapi.json file.
+ * API Documentation Generator using PHP 8 Attributes
  */
 
-// --- Bootstrap The Framework (minimal) ---
-define('WORKSPATH', __DIR__);
-define('PROJECTPATH', __DIR__);
-$_SERVER['HTTP_HOST'] = 'localhost'; // Assume localhost for CLI
-require_once WORKSPATH . DIRECTORY_SEPARATOR . 'func' . DIRECTORY_SEPARATOR . 'default.php';
-\setRequire(WORKSPATH . DIRECTORY_SEPARATOR . 'boot' . DIRECTORY_SEPARATOR . 'boot.php');
-\setRequire(WORKSPATH . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'core.php');
-\setRequire(WORKSPATH . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'app.php');
-// --- End Bootstrap ---
+// Bootstrap the framework for CLI environment
+require __DIR__ . '/bootstrap/app.php';
+
+// --- Autoload Attribute Classes ---
+// This is a temporary solution until a proper autoloader is in place.
+spl_autoload_register(function ($class) {
+    $prefix = 'APP\\Attributes\\';
+    if (strncmp($prefix, $class, strlen($prefix)) !== 0) {
+        return;
+    }
+    $file = __DIR__ . '/app/Attributes/' . str_replace($prefix, '', $class) . '.php';
+
+    // This logic is a bit brittle, assumes one class per file for simplicity
+    // or known multi-class files.
+    if (file_exists($file)) {
+        require_once $file;
+    } else if (file_exists(__DIR__ . '/app/Attributes/ApiOperation.php')) {
+        require_once __DIR__ . '/app/Attributes/ApiOperation.php';
+    } else if (file_exists(__DIR__ . '/app/Attributes/ApiParameter.php')) {
+        require_once __DIR__ . '/app/Attributes/ApiParameter.php';
+    } else if (file_exists(__DIR__ . '/app/Attributes/ApiResponse.php')) {
+        require_once __DIR__ . '/app/Attributes/ApiResponse.php';
+    }
+});
+// --- End Autoload ---
+
 
 echo "Starting API documentation generation...\n";
+
+// We need to define HOST for HOSTPATH to work correctly.
+if (!defined('HOST')) {
+    define('HOST', 'localhost');
+}
 
 $controllerPath = HOSTPATH . DIRECTORY_SEPARATOR . 'control';
 $outputDir = __DIR__ . '/public';
@@ -35,75 +56,62 @@ $openapi = [
     'paths' => []
 ];
 
+if (!is_dir($controllerPath)) {
+    echo "Controller path not found: {$controllerPath}\n";
+    exit(1);
+}
+
 $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($controllerPath));
 $phpFiles = new \RegexIterator($files, '/\.php$/');
 
-// Ensure the base Control class is loaded so that child controllers can be reflected.
 \APP\App::loadAbstract('control');
 
 foreach ($phpFiles as $phpFile) {
-    // Need to include the file to make Reflection work on non-autoloaded classes
     require_once $phpFile->getRealPath();
-
     $content = file_get_contents($phpFile->getRealPath());
     preg_match('/class\s+([a-zA-Z0-9_]+)/', $content, $matches);
     if (!isset($matches[1])) continue;
 
     $className = $matches[1];
-    if (!class_exists($className, false)) {
-        continue; // Skip if class is not defined in the file
-    }
+    if (!class_exists($className, false)) continue;
 
     $reflection = new \ReflectionClass($className);
 
     foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
-        $docComment = $method->getDocComment();
-        if (!$docComment) continue;
+        $attributes = $method->getAttributes();
+        if (empty($attributes)) continue;
 
-        preg_match_all('/@api-([a-zA-Z]+)\s+(.*)/', $docComment, $apiMatches, PREG_SET_ORDER);
-        if (empty($apiMatches)) continue;
+        $pathItem = ['parameters' => [], 'responses' => []];
+        $routeInfo = null;
 
-        $pathItem = [];
-        $uri = '';
-        $httpMethod = '';
-
-        foreach ($apiMatches as $match) {
-            $key = strtolower($match[1]);
-            $value = trim($match[2]);
-
-            switch ($key) {
-                case 'uri':
-                    $uri = $value;
+        foreach ($attributes as $attribute) {
+            $instance = $attribute->newInstance();
+            switch (get_class($instance)) {
+                case 'APP\Attributes\Route':
+                    $routeInfo = $instance;
                     break;
-                case 'method':
-                    $httpMethod = strtolower($value);
+                case 'APP\Attributes\Summary':
+                    $pathItem['summary'] = $instance->summary;
                     break;
-                case 'summary':
-                    $pathItem['summary'] = $value;
+                case 'APP\Attributes\Description':
+                    $pathItem['description'] = $instance->description;
                     break;
-                case 'description':
-                    $pathItem['description'] = $value;
-                    break;
-                case 'param':
-                    // e.g., name string path required The name...
-                    list($pName, $pType, $pIn, $pRequired, $pDesc) = preg_split('/\s+/', $value, 5);
+                case 'APP\Attributes\Param':
                     $pathItem['parameters'][] = [
-                        'name' => $pName,
-                        'in' => $pIn,
-                        'description' => $pDesc,
-                        'required' => ($pRequired === 'required'),
-                        'schema' => ['type' => $pType]
+                        'name' => $instance->name,
+                        'in' => $instance->in,
+                        'description' => $instance->description,
+                        'required' => $instance->required,
+                        'schema' => ['type' => $instance->type]
                     ];
                     break;
-                case 'response':
-                    // e.g., 200 { "message": "..." } application/json A successful response.
-                    list($rCode, $rExample, $rType, $rDesc) = preg_split('/\s+/', $value, 4);
-                     $pathItem['responses'][$rCode] = [
-                        'description' => $rDesc,
+                case 'APP\Attributes\Response':
+                    $pathItem['responses'][(string)$instance->statusCode] = [
+                        'description' => $instance->description,
                         'content' => [
-                            $rType => [
-                                'schema' => [ 'type' => 'object' ],
-                                'example' => json_decode($rExample)
+                            $instance->contentType => [
+                                'schema' => ['type' => 'object'],
+                                'example' => $instance->exampleJson ? json_decode($instance->exampleJson) : null
                             ]
                         ]
                     ];
@@ -111,8 +119,9 @@ foreach ($phpFiles as $phpFile) {
             }
         }
 
-        if ($uri && $httpMethod) {
-            $openapi['paths'][$uri][$httpMethod] = $pathItem;
+        if ($routeInfo) {
+            $httpMethod = strtolower($routeInfo->method);
+            $openapi['paths'][$routeInfo->uri][$httpMethod] = $pathItem;
         }
     }
 }

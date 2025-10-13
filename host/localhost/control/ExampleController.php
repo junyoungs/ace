@@ -1,37 +1,33 @@
-<?php
+<?php declare(strict_types=1);
+
+use APP\Attributes\Route;
+use APP\Attributes\Summary;
+use APP\Attributes\Description;
+use APP\Attributes\Param;
+use APP\Attributes\Response;
 
 class ExampleController extends \APP\Control
 {
-    /**
-     * Greets a user.
-     *
-     * @api-summary Greets a specific user
-     * @api-description This endpoint returns a personalized greeting to the user.
-     * @api-method GET
-     * @api-uri /hello/{name}
-     * @api-param name string path required The name of the user to greet.
-     * @api-response 200 { "message": "Hello, [name]!" } application/json A successful greeting.
-     * @api-response 404 { "error": "User not found" } application/json The user was not found.
-     */
-    public function hello($name)
+    #[Route('/hello/{name}', method: 'GET')]
+    #[Summary('Greets a specific user')]
+    #[Description('This endpoint returns a personalized greeting to the user.')]
+    #[Param('name', 'string', 'path', true, 'The name of the user to greet.')]
+    #[Response(200, 'A successful greeting.', exampleJson: '{ "message": "Hello, [name]!" }')]
+    #[Response(404, 'The user was not found.', exampleJson: '{ "error": "User not found" }')]
+    public function hello(string $name): void
     {
         // Simple JSON output
         header('Content-Type: application/json');
         echo json_encode(['message' => "Hello, " . htmlspecialchars($name) . "!"]);
     }
 
-    /**
-     * Creates a new user and broadcasts an event.
-     *
-     * @api-summary Creates a new user
-     * @api-description This endpoint simulates creating a new user and then broadcasts a `user.created` event via Redis Pub/Sub, which can be picked up by a WebSocket server.
-     * @api-method POST
-     * @api-uri /users/create
-     * @api-param name string body required The name of the new user.
-     * @api-param email string body required The email of the new user.
-     * @api-response 201 { "status": "success", "user": { "id": 1, "name": "Jane Doe", "email": "jane@example.com" } } application/json User created and event broadcasted.
-     */
-    public function createUser()
+    #[Route('/users/create', method: 'POST')]
+    #[Summary('Creates a new user')]
+    #[Description('This endpoint simulates creating a new user and then broadcasts a `user.created` event via Redis Pub/Sub, which can be picked up by a WebSocket server.')]
+    #[Param('name', 'string', 'body', true, 'The name of the new user.')]
+    #[Param('email', 'string', 'body', true, 'The email of the new user.')]
+    #[Response(201, 'User created and event broadcasted.', exampleJson: '{ "status": "success", "user": { "id": 1, "name": "Jane Doe", "email": "jane@example.com" } }')]
+    public function createUser(): void
     {
         // In a real app, you would get this from the request body, e.g., $this->input->post('name');
         $name = 'Jane Doe';

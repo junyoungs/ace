@@ -1,24 +1,26 @@
 {
-    "name": "junyoung-park/php-framework",
-    "description": "A custom PHP framework.",
+    "name": "ed/php-framework",
+    "description": "A custom PHP framework, modernized by ED.",
     "type": "project",
     "license": "LGPL-3.0-or-later",
     "authors": [
         {
-            "name": "Junyoung Park"
+            "name": "ED"
         }
     ],
     "require": {
-        "php": ">=5.4.0"
+        "php": ">=8.0"
     },
     "autoload": {
         "psr-4": {
             "APP\\": "app/",
-            "BOOT\\": "boot/",
             "CORE\\": "core/",
-            "PROJECT\\UNIT\\": "unit/",
-            "PROJECT\\MODEL\\": "model/",
-            "PROJECT\\VALID\\": "valid/"
-        }
+            "DATABASE\\": "database/",
+            "PROJECT\\MODEL\\": "model/"
+        },
+        "files": [
+            "func/default.php",
+            "boot/boot.php"
+        ]
     }
 }

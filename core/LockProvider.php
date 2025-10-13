@@ -1,20 +1,22 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace CORE;
+
+use Redis;
+use Closure;
+use Exception;
 
 class LockProvider
 {
     /**
      * The Redis connection instance.
-     * @var \Redis
      */
-    protected $redis;
+    protected Redis $redis;
 
     /**
      * The cache key prefix.
-     * @var string
      */
-    protected $prefix = 'framework_lock:';
+    protected string $prefix = 'framework_lock:';
 
     public function __construct()
     {
@@ -24,12 +26,8 @@ class LockProvider
 
     /**
      * Attempt to acquire a lock.
-     *
-     * @param  string  $key The lock key.
-     * @param  int  $ttl The lock lifetime in seconds.
-     * @return bool True if the lock was acquired, false otherwise.
      */
-    public function lock($key, $ttl = 10)
+    public function lock(string $key, int $ttl = 10): bool
     {
         // The 'NX' option means "set if not exists". This is an atomic operation.
         return $this->redis->set($this->prefix . $key, 1, ['nx', 'ex' => $ttl]);
@@ -37,11 +35,8 @@ class LockProvider
 
     /**
      * Release a lock.
-     *
-     * @param  string  $key The lock key.
-     * @return bool
      */
-    public function release($key)
+    public function release(string $key): bool
     {
         return (bool) $this->redis->del($this->prefix . $key);
     }
@@ -49,17 +44,12 @@ class LockProvider
     /**
      * Execute a callback within a lock.
      * Automatically acquires and releases the lock.
-     *
-     * @param string $key The lock key.
-     * @param \Closure $callback The callback to execute.
-     * @param int $ttl The lock lifetime.
-     * @return mixed The result of the callback.
      * @throws \Exception If the lock cannot be acquired.
      */
-    public function withLock($key, \Closure $callback, $ttl = 10)
+    public function withLock(string $key, Closure $callback, int $ttl = 10): mixed
     {
         if (!$this->lock($key, $ttl)) {
-            throw new \Exception("Could not acquire lock for key: {$key}");
+            throw new Exception("Could not acquire lock for key: {$key}");
         }
 
         try {
