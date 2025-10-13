@@ -97,50 +97,43 @@ class App
 	 */
 	public static function run()
 	{
+		$router = Core::get('Router');
+		$router->dispatch();
+
+		// Get details from the router after dispatching
+		$f = $router->getFile();
+		$c = $router->getControl();
+		$m = $router->getMethod();
+		$params = $router->getParams();
+
+		// If control is empty, it means a closure was handled or 404 was thrown.
+		if (empty($c)) {
+			return;
+		}
+
 		self::loadAbstract('control');
 
-		$f = Core::get('Router')->getFile();
-		$c = Core::get('Router')->getControl();
-		$m = Core::get('Router')->getMethod();
-
-		if( \setRequire( $f ) === FALSE )
-		{
-			throw new \Exception('Controller file not found: '.$f);
+		if (!empty($f) && \setRequire($f) === FALSE) {
+			throw new \Exception('Controller file not found: ' . $f);
 		}
-		if( ! class_exists( $c ) )
-		{
-			throw new \Exception('Controller class not found: '.$c);
+		if (!class_exists($c)) {
+			throw new \Exception('Controller class not found: ' . $c);
 		}
 
-		if( ! method_exists( $c, $m ) )
-		{
-			if( method_exists( $c, 'index' ) )
-			{
-				Core::get('Router')->setMethod('index');
-				Core::get('Router')->addTrace();
-				$m = Core::get('Router')->getMethod();
-			}
-			else
-			{
-				throw new \Exception('Method not found in controller: '.$c.'::'.$m);
-			}
+		if (!method_exists($c, $m)) {
+			throw new \Exception('Method not found in controller: ' . $c . '::' . $m);
 		}
 
-		$router   = Core::get('Router');
+		// Dependencies for the controller
 		$input    = Core::get('Input');
 		$security = Core::get('Security');
 		$session  = Core::get('Session');
 		$crypt    = Core::get('Crypt');
 
-		$control = new $c( $f, $c, $m, $router, $input, $security, $session, $crypt );
-		if( $c != $m )
-		{
-			$control->$m();
-		}
-		else
-		{
-			\BOOT\Log::w('ERROR', 'Not allowed same name - '.$c.'::'.$m);
-		}
+		$control = new $c($f, $c, $m, $router, $input, $security, $session, $crypt);
+
+		// Call the controller method with route parameters
+		call_user_func_array([$control, $m], $params);
 	}
 
 }

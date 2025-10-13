@@ -30,6 +30,8 @@
  * ------------------------------------------------------
  */
 	\setRequire( WORKSPATH.DIRECTORY_SEPARATOR.'boot'.DIRECTORY_SEPARATOR.'boot.php' );
+	\setRequire( WORKSPATH.DIRECTORY_SEPARATOR.'core'.DIRECTORY_SEPARATOR.'Route.php' );
+	\setRequire( WORKSPATH.DIRECTORY_SEPARATOR.'core'.DIRECTORY_SEPARATOR.'QueryBuilder.php' );
 	\BOOT\Log::w('INFO', 'Boot Done.');
 
 /*

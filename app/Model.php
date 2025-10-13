@@ -19,6 +19,13 @@ abstract class Model
 	public	$class	= NULL;
 	public	$driver	= NULL;
 
+	/**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table;
+
 	//Public Core Classes
 	public $security = NULL;
 
@@ -30,13 +37,43 @@ abstract class Model
 		$this->security = &Core::get('Security');
 		$this->crypt    = &Core::get('Crypt');
 
- 		$this->__setDb();
+		$this->__setDb();
 	}
+
+    /**
+     * Get the table associated with the model.
+     *
+     * @return string
+     */
+    public function getTable()
+    {
+        if (isset($this->table)) {
+            return $this->table;
+        }
+        // Guesses table name from class name: User -> users
+        return strtolower(preg_replace('/(?<=\\w)(?=[A-Z])/', '_$1', basename(str_replace('\\', '/', get_called_class())))) . 's';
+    }
+
+    /**
+     * Handle dynamic static method calls into the model.
+     *
+     * @param  string  $method
+     * @param  array   $parameters
+     * @return mixed
+     */
+    public static function __callStatic($method, $parameters)
+    {
+        $instance = new static(get_called_class());
+        $query = new \CORE\QueryBuilder($instance->db);
+        $query->table($instance->getTable());
+
+        return $query->$method(...$parameters);
+    }
 
 	final private function __setDb()
 	{
- 		$tmp = explode('.', $this->class);
- 		$this->driver = strtolower(trim((string)array_shift($tmp)));
+		$tmp = explode('.', $this->class);
+		$this->driver = strtolower(trim((string)array_shift($tmp)));
 
 		$this->db = &Core::get('Db')->driver($this->driver);      // connect slave database
 		Log::w('INFO', 'Database Driver: '.$this->driver.':'.($this->db->isMaster ? 'master':'slave'));
