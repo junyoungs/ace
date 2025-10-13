@@ -11,6 +11,8 @@ define('PROJECTPATH', __DIR__);
 $_SERVER['HTTP_HOST'] = 'localhost'; // Assume localhost for CLI
 require_once WORKSPATH . DIRECTORY_SEPARATOR . 'func' . DIRECTORY_SEPARATOR . 'default.php';
 \setRequire(WORKSPATH . DIRECTORY_SEPARATOR . 'boot' . DIRECTORY_SEPARATOR . 'boot.php');
+\setRequire(WORKSPATH . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'core.php');
+\setRequire(WORKSPATH . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'app.php');
 // --- End Bootstrap ---
 
 echo "Starting API documentation generation...\n";
@@ -36,15 +38,20 @@ $openapi = [
 $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($controllerPath));
 $phpFiles = new \RegexIterator($files, '/\.php$/');
 
+// Ensure the base Control class is loaded so that child controllers can be reflected.
+\APP\App::loadAbstract('control');
+
 foreach ($phpFiles as $phpFile) {
+    // Need to include the file to make Reflection work on non-autoloaded classes
+    require_once $phpFile->getRealPath();
+
     $content = file_get_contents($phpFile->getRealPath());
     preg_match('/class\s+([a-zA-Z0-9_]+)/', $content, $matches);
     if (!isset($matches[1])) continue;
 
     $className = $matches[1];
-    if (!class_exists($className)) {
-         // Need to include the file to make Reflection work
-        require_once $phpFile->getRealPath();
+    if (!class_exists($className, false)) {
+        continue; // Skip if class is not defined in the file
     }
 
     $reflection = new \ReflectionClass($className);

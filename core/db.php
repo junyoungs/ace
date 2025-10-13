@@ -1,153 +1,134 @@
 <?php
 namespace CORE;
 
+use \BOOT\Log;
+
 /**
- * DB
+ * DB Manager
  *
- * @author		Junyoung Park
+ * @author		Junyoung Park (Original), Jules (Refactor)
  * @copyright	Copyright (c) 2016.
  * @license		LGPL
- * @version		1.0.0
+ * @version		2.0.0
  * @namespace	\CORE
- *
  */
 class Db
 {
-	private $__supportedDriver	= array('mysql');
-	private $__config			= NULL;
-
-	public static $mysql		= NULL;
-	public static $mongo		= NULL;
-	public static $redis		= NULL;
-	public static $memcache		= NULL;
-	public static $apc			= NULL;
+    private static $instances = [];
+	private $config = NULL;
 
 	public function __construct()
 	{
-		$this->__setConfig();
-
-		\BOOT\Log::w('INFO', '\\CORE\\Db class initialized.');
+		$this->setConfig();
+		Log::w('INFO', '\\CORE\\Db class initialized.');
 	}
 
-
-	/**
-	 * set database config
-	 */
-	private function __setConfig()
+	private function setConfig()
 	{
-		if( is_null( $this->__config ) )
-		{
-			$this->__config = \setRequire( PROJECTPATH.DIRECTORY_SEPARATOR.'config'.DIRECTORY_SEPARATOR.'database.php' );
-
-			if( ! is_array($this->__config) )
-			{
-				\BOOT\Log::w('ERROR', 'Database Config does not exist.');
+		if (is_null($this->config)) {
+			$this->config = \setRequire(PROJECTPATH . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'database.php');
+			if (!is_array($this->config)) {
+				throw new \Exception('Database config file not found or invalid.');
 			}
 		}
 	}
 
+	public function getConfigFor(string $driver, bool $isMaster)
+    {
+        $connectionConfig = $this->config['connections'][$driver] ?? null;
+        if (!$connectionConfig) {
+            throw new \Exception("Config not found for database driver: {$driver}");
+        }
+
+        $serverType = $isMaster ? 'master' : 'slave';
+        $servers = $connectionConfig[$serverType] ?? [];
+        if (empty($servers)) {
+            // Fallback to master if slave is not defined
+            $servers = $connectionConfig['master'] ?? [];
+            if (empty($servers)) {
+                throw new \Exception("No '{$serverType}' or 'master' servers configured for driver: {$driver}");
+            }
+        }
+
+        // Return a random server from the list
+        return is_array(reset($servers)) ? $servers[array_rand($servers)] : $servers;
+    }
 
 	/**
-	 * get config
-	 * @param string $driver ('mysql', 'mongo', 'redis', 'memcache', 'apc'...)
-	 * @return array
-	 */
-	public function getConfig( $driver )
-	{
-		$driver = $this->__checkDriver($driver);
-		if( is_array($this->__config) && array_key_exists($driver, $this->__config) )
-		{
-			return $this->__config[$driver];
-		}
-
-		\BOOT\Log::w('ERROR', 'Config does not exist: Db > '.$driver);
-	}
-
-	/**
-	 * set driver
+	 * Get a database driver instance.
 	 *
 	 * @param string $driver
-	 * @return this
+	 * @param bool $isMaster
+	 * @return \DATABASE\DatabaseDriverInterface
 	 */
-	public function &driver($driver, $isMaster=FALSE)
+	public function driver(string $driver, bool $isMaster = FALSE)
 	{
-		$driver = $this->__checkDriver($driver);
+        $driverKey = "{$driver}_" . ($isMaster ? 'master' : 'slave');
 
-		if( ! is_null(self::$$driver) && self::$$driver->isMaster == TRUE )
-		{
-			\BOOT\Log::w('INFO', 'Reuse: Database Driver > '.$driver.'');
-			return self::$$driver;
+		if (isset(self::$instances[$driverKey])) {
+            Log::w('INFO', "Reuse: Database Driver > {$driverKey}");
+			return self::$instances[$driverKey];
 		}
 
-		$path = WORKSPATH.DIRECTORY_SEPARATOR.'database'.DIRECTORY_SEPARATOR.$driver.DIRECTORY_SEPARATOR;
+        $driverName = ucfirst(strtolower($driver)); // mysql -> Mysql
+		$driverClass = "\\DATABASE\\{$driverName}\\{$driverName}Connector";
+        $driverFile = WORKSPATH . "/database/{$driver}/{$driverName}Connector.php";
 
-		if( \setRequire( $path.'connector.php' ) === FALSE )
-		{
-			\BOOT\Log::w('ERROR', 'Not found: Database > '.$driver.' > connector');
-		}
-		if( \setRequire( $path.'transaction.php' ) === FALSE )
-		{
-			\BOOT\Log::w('ERROR', 'Not found: Database > '.$driver.' > transaction');
-		}
-		if( \setRequire( $path.'sql.php' ) === FALSE )
-		{
-			\BOOT\Log::w('ERROR', 'Not found: Database > '.$driver.' > sql');
-		}
-		if( \setRequire( $path.'util.php' ) === FALSE )
-		{
-			\BOOT\Log::w('ERROR', 'Not found: Database > '.$driver.' > util');
-		}
+        if (!file_exists($driverFile)) {
+            throw new \Exception("Database driver file not found: {$driverFile}");
+        }
+        require_once $driverFile;
 
-		$namespace		= '\\DATABASE\\'.strtoupper($driver).'\\';
-		$connector		= $namespace.'Connector';
-		$transaction	= $namespace.'Transaction';
-		$sql			= $namespace.'Sql';
-		$util			= $namespace.'Util';
+		if (!class_exists($driverClass)) {
+            throw new \Exception("Database driver class not found: {$driverClass}");
+        }
 
-		self::$$driver 					= new \stdClass();
-		self::$$driver->isMaster		= $isMaster === TRUE ? TRUE : FALSE;
+        $connectionConfig = $this->getConfigFor($driver, $isMaster);
 
-		self::$$driver->connector		= new $connector();
-		self::$$driver->transaction		= new $transaction();
-		self::$$driver->sql				= new $sql();
-		self::$$driver->util			= new $util();
+        $instance = new $driverClass();
+        $instance->connect($connectionConfig);
 
-		self::$$driver->connector->db	= &self::$$driver;
-		self::$$driver->transaction->db	= &self::$$driver;
-		self::$$driver->sql->db			= &self::$$driver;
-		self::$$driver->util->db		= &self::$$driver;
+        self::$instances[$driverKey] = $instance;
+        Log::w('INFO', "Created: Database Driver > {$driverKey}");
 
-		self::$$driver->connector->connect();
-
-		return self::$$driver;
+		return $instance;
 	}
 
-	/**
-	 * get setting driver
-	 *
-	 * @param string $driver
-	 * @return string
-	 */
+    /**
+     * @deprecated The query builder should be used instead of accessing the db object directly.
+     */
 	public function &getDriver($driver) {
-		$driver = $this->__checkDriver($driver);
-		\BOOT\Log::w('INFO', 'Get Database Driver > '.$driver.'');
-		return self::$$driver;
+		// This method is largely obsolete with the new architecture.
+        // It might be needed for the Model's __setDb method for now.
+        $driverKey = "{$driver}_slave"; // Assume slave for legacy calls
+        if (isset(self::$instances[$driverKey])) {
+            return self::$instances[$driverKey];
+        }
+        // Fallback to creating a new slave connection
+        return $this->driver($driver, false);
 	}
 
-	/**
-	 * check supported driver
-	 *
-	 * @param string $driver
-	 * @return string
-	 */
-	private function __checkDriver($driver)
-	{
-		$driver = strtolower(trim($driver));
-		if( in_array($driver, $this->__supportedDriver) === FALSE )
-		{
-			\BOOT\Log::w('ERROR', 'Not supported: Database > '.$driver);
-		}
-		return $driver;
-	}
+    /**
+     * Execute a database transaction.
+     *
+     * @param \Closure $callback
+     * @param string $connectionName The name of the database connection to use.
+     * @return mixed
+     * @throws \Throwable
+     */
+    public function transaction(\Closure $callback, $connectionName = 'mysql')
+    {
+        $db = $this->driver($connectionName, true); // Transactions must use master
 
+        $db->beginTransaction();
+
+        try {
+            $result = $callback($db);
+            $db->commit();
+            return $result;
+        } catch (\Throwable $e) {
+            $db->rollBack();
+            throw $e; // Re-throw the exception after rolling back
+        }
+    }
 }

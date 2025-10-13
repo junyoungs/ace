@@ -16,6 +16,7 @@ $_SERVER['HTTP_HOST'] = 'localhost';
 require_once WORKSPATH . DIRECTORY_SEPARATOR . 'func' . DIRECTORY_SEPARATOR . 'default.php';
 \setRequire(WORKSPATH . DIRECTORY_SEPARATOR . 'boot' . DIRECTORY_SEPARATOR . 'boot.php');
 \setRequire(WORKSPATH . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'core.php');
+\setRequire(WORKSPATH . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'app.php');
 // --- End Bootstrap ---
 
 
@@ -35,9 +36,9 @@ function ensure_migrations_table_exists($db)
 {
     $tableName = 'migrations';
     // Check if table exists
-    $result = $db->sql->query("SHOW TABLES LIKE ?", [$tableName]);
+    $result = $db->prepareQuery("SHOW TABLES LIKE ?", [$tableName]);
 
-    if ($result->num_rows == 0) {
+    if ($result->rowCount() == 0) {
         echo "Migrations table not found. Creating table: {$tableName}\n";
         try {
             $createQuery = "
@@ -48,7 +49,8 @@ function ensure_migrations_table_exists($db)
                     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
             ";
-            $db->sql->query($createQuery);
+            // Use query for DDL statements as they can't be prepared in some drivers
+            $db->query($createQuery);
             echo "Table '{$tableName}' created successfully.\n";
         } catch (\Exception $e) {
             echo "Failed to create migrations table: " . $e->getMessage() . "\n";
@@ -63,9 +65,9 @@ ensure_migrations_table_exists($db);
 
 // 1. Get executed migrations
 $executedMigrations = [];
-$result = $db->sql->query("SELECT migration FROM migrations");
-if ($result && $result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
+$result = $db->prepareQuery("SELECT migration FROM migrations");
+if ($result && $result->rowCount() > 0) {
+    while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
         $executedMigrations[] = $row['migration'];
     }
 }
@@ -93,8 +95,8 @@ if (empty($pendingMigrations)) {
 echo "Found " . count($pendingMigrations) . " new migrations to run.\n";
 
 // Get the next batch number
-$batchResult = $db->sql->query("SELECT MAX(batch) as max_batch FROM migrations");
-$lastBatch = $batchResult->fetch_assoc()['max_batch'] ?? 0;
+$batchResult = $db->prepareQuery("SELECT MAX(batch) as max_batch FROM migrations");
+$lastBatch = $batchResult->fetchColumn() ?? 0;
 $nextBatch = $lastBatch + 1;
 
 foreach ($pendingMigrations as $file) {
@@ -114,7 +116,7 @@ foreach ($pendingMigrations as $file) {
             $migration->up();
 
             // Record the migration
-            $db->sql->query("INSERT INTO migrations (migration, batch) VALUES (?, ?)", [$migrationNameFromFile, $nextBatch]);
+            $db->prepareQuery("INSERT INTO migrations (migration, batch) VALUES (?, ?)", [$migrationNameFromFile, $nextBatch]);
             echo "Migrated:  {$migrationNameFromFile}\n";
         } catch (\Exception $e) {
             echo "ERROR migrating {$migrationNameFromFile}: " . $e->getMessage() . "\n";

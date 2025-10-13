@@ -32,3 +32,5 @@ Route::get('/api/docs', function() {
         echo "API documentation file not found. Please run 'php apidoc.php' to generate it.";
     }
 });
+
+Route::post('/users/create', 'ExampleController@createUser');
