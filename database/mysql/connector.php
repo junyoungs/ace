@@ -120,6 +120,36 @@ class Connector
 	}
 
 	/**
+	 * Execute a prepared statement
+	 * @param string $sql SQL query with placeholders (?)
+	 * @param array $params Parameters to bind
+	 * @return \mysqli_result|bool
+	 */
+	final public function prepareQuery($sql, $params = [])
+	{
+		$this->checkConnected();
+		$stmt = $this->conn->prepare($sql);
+
+		if ($stmt === false) {
+			throw new \Exception('Prepare failed: (' . $this->conn->errno . ') ' . $this->conn->error . ' > ' . $sql);
+		}
+
+		if (!empty($params)) {
+			$types = str_repeat('s', count($params)); // Treat all params as strings for simplicity
+			$stmt->bind_param($types, ...$params);
+		}
+
+		if (!$stmt->execute()) {
+			throw new \Exception('Execute failed: (' . $stmt->errno . ') ' . $stmt->error);
+		}
+
+		$result = $stmt->get_result();
+		$stmt->close();
+
+		return $result;
+	}
+
+	/**
 	 * Escape
 	 * @param String $sql
 	 */

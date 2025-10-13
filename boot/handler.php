@@ -219,11 +219,33 @@ function handler($severity, $message, $filename, $line)
 set_error_handler("\BOOT\handler");
 
 
+/**
+ * Uncaught Exception Handler
+ * @param \Exception $exception
+ */
+function exception_handler($exception)
+{
+    // 500 Internal Server Error
+    http_response_code(500);
+
+    if (MODE === 'development') {
+        echo "<h1>Uncaught Exception</h1>";
+        echo "<p><b>Message:</b> " . $exception->getMessage() . "</p>";
+        echo "<p><b>File:</b> " . $exception->getFile() . "</p>";
+        echo "<p><b>Line:</b> " . $exception->getLine() . "</p>";
+        echo "<h2>Stack Trace</h2><pre>" . $exception->getTraceAsString() . "</pre>";
+    } else {
+        // Log the full error
+        error_log($exception->__toString());
+        // Show a generic error message to the user
+        echo "<h1>500 Internal Server Error</h1>";
+        echo "<p>A critical error occurred. Please try again later.</p>";
+    }
+    exit(1);
+}
+
+set_exception_handler('\BOOT\exception_handler');
 
 
-
-
-
-
-/* End of file exception.php */
-/* Location: ./boot/exception.php */
+/* End of file handler.php */
+/* Location: ./boot/handler.php */
