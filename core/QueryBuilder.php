@@ -1,56 +1,42 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace CORE;
+
+use DATABASE\DatabaseDriverInterface;
 
 class QueryBuilder
 {
     /**
-     * The database connection instance.
-     *
-     * @var \stdClass
-     */
-    protected $db;
-
-    /**
      * The table which the query is targeting.
-     *
-     * @var string
      */
-    protected $table;
+    protected string $table;
 
     /**
      * The columns that should be returned.
-     *
-     * @var array
+     * @var array<int, string>
      */
-    public $columns = ['*'];
+    public array $columns = ['*'];
 
     /**
      * The where constraints for the query.
-     *
-     * @var array
+     * @var array<int, string>
      */
-    public $wheres = [];
+    public array $wheres = [];
 
     /**
      * The parameters for the query bindings.
-     *
-     * @var array
+     * @var array<int, mixed>
      */
-    public $bindings = [];
+    public array $bindings = [];
 
-    public function __construct($connection)
-    {
-        $this->db = $connection;
-    }
+    public function __construct(
+        protected DatabaseDriverInterface $db
+    ) {}
 
     /**
      * Set the table for the query.
-     *
-     * @param string $table
-     * @return $this
      */
-    public function table($table)
+    public function table(string $table): self
     {
         $this->table = $table;
         return $this;
@@ -58,13 +44,8 @@ class QueryBuilder
 
     /**
      * Add a basic where clause to the query.
-     *
-     * @param string $column
-     * @param string $operator
-     * @param mixed  $value
-     * @return $this
      */
-    public function where($column, $operator, $value)
+    public function where(string $column, string $operator, mixed $value): self
     {
         $this->wheres[] = "`{$column}` {$operator} ?";
         $this->bindings[] = $value;
@@ -73,21 +54,16 @@ class QueryBuilder
 
     /**
      * Execute a query for a single record by ID.
-     *
-     * @param int $id
-     * @return array|null
      */
-    public function find($id)
+    public function find(int $id): ?array
     {
         return $this->where('id', '=', $id)->first();
     }
 
     /**
      * Execute the query and get the first result.
-     *
-     * @return array|null
      */
-    public function first()
+    public function first(): ?array
     {
         $results = $this->get();
         return count($results) > 0 ? $results[0] : null;
@@ -95,10 +71,8 @@ class QueryBuilder
 
     /**
      * Execute the query as a "select" statement.
-     *
-     * @return array
      */
-    public function get()
+    public function get(): array
     {
         $sql = "SELECT " . implode(', ', $this->columns) . " FROM `{$this->table}`";
 
@@ -109,7 +83,10 @@ class QueryBuilder
         $result = $this->db->prepareQuery($sql, $this->bindings);
 
         $data = [];
-        if ($result && $result->num_rows > 0) {
+        // PDO returns a PDOStatement, mysqli returns mysqli_result
+        if ($result instanceof \PDOStatement) {
+            return $result->fetchAll(\PDO::FETCH_ASSOC);
+        } elseif ($result instanceof \mysqli_result) {
             while ($row = $result->fetch_assoc()) {
                 $data[] = $row;
             }
@@ -119,11 +96,8 @@ class QueryBuilder
 
     /**
      * Set the columns to be selected.
-     *
-     * @param  array|mixed  $columns
-     * @return $this
      */
-    public function select($columns = ['*'])
+    public function select(array|string $columns = ['*']): self
     {
         $this->columns = is_array($columns) ? $columns : func_get_args();
         return $this;
@@ -131,11 +105,8 @@ class QueryBuilder
 
     /**
      * Insert a new record into the database.
-     *
-     * @param  array  $values
-     * @return bool
      */
-    public function insert(array $values)
+    public function insert(array $values): bool
     {
         $columns = '`' . implode('`, `', array_keys($values)) . '`';
         $placeholders = rtrim(str_repeat('?, ', count($values)), ', ');
@@ -148,11 +119,8 @@ class QueryBuilder
 
     /**
      * Update a record in the database.
-     *
-     * @param  array  $values
-     * @return int The number of affected rows.
      */
-    public function update(array $values)
+    public function update(array $values): int
     {
         $setClauses = [];
         $updateBindings = [];
@@ -176,10 +144,8 @@ class QueryBuilder
 
     /**
      * Delete a record from the database.
-     *
-     * @return int The number of affected rows.
      */
-    public function delete()
+    public function delete(): int
     {
         $sql = "DELETE FROM `{$this->table}`";
 

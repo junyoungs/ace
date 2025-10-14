@@ -1,33 +1,84 @@
-# Custom PHP Framework
+# ACE Framework: The Art of Simplicity
 
-This is a lightweight, custom-built PHP framework designed for building web applications. It follows a Model-View-Controller (MVC) like architecture and provides a basic structure for routing, database interaction, and application logic.
+**ACE** is a minimalist PHP framework designed for one thing: building powerful, simple, and fast API backends. We believe that creating an API should be an elegant and straightforward process, free from unnecessary complexity and boilerplate.
 
-This framework is currently undergoing modernization to serve as a viable alternative to more complex frameworks like Laravel for specific use cases.
+Our core philosophy is **Absolute Simplicity**. ACE strips away non-essential features to provide a clean, intuitive, and highly focused development experience. If you need to build a pure API with MySQL or SQLite, ACE is the fastest way to get it done.
 
-## Author
+## Key Features
 
-*   **ED**
+- **Zero-Config Routing**: No route files. No route attributes. Just name your controller methods with a `get`, `post`, `put`, or `delete` prefix, and your API endpoints are live instantly.
+- **Automatic Code Generation**: Create full CRUD API resources with a single command.
+- **Attribute-Based API Docs**: Define your API documentation with simple PHP 8 attributes right above your controller methods.
+- **Effortless JSON Responses**: Just return an array or object from your controller, and ACE will automatically convert it to a JSON response with the correct headers and status codes.
+- **Fluent Query Builder**: A simple, powerful query builder that makes database interactions a breeze.
+- **Simple Migrations**: A straightforward CLI-based migration system to manage your database schema.
 
-## Recent Improvements
+## Automatic Routing Conventions
 
-The framework has been recently refactored to incorporate modern PHP development practices and enhance security. Key improvements include:
+You never have to define a route. ACE follows these simple conventions based on your controller and method names.
 
-### 1. Enhanced Security
-- **Prepared Statements:** The database layer has been updated to use `mysqli` prepared statements for all queries, providing robust protection against SQL injection attacks. The old, insecure `execute()` method has been deprecated.
+- **Controller:** `ProductController`
+- **Resource Name:** `product`
+- **Base URI:** `/api/product`
 
-### 2. Modernized Architecture
-- **Dependency Injection (DI):** The core `Control` class now utilizes constructor dependency injection. This decouples controllers from the global state, making them more modular, easier to test, and simpler to maintain.
-- **PSR-1 Compliance:** Class and file names have been updated to follow PSR-1 standards (e.g., `ClassName` and `ClassName.php`), improving code consistency and interoperability.
+| Controller Method          | HTTP Verb | URI                         |
+|----------------------------|-----------|-----------------------------|
+| `getIndex()`               | `GET`     | `/api/product/index`        |
+| `getShow(int $id)`         | `GET`     | `/api/product/show/{id}`    |
+| `postStore()`              | `POST`    | `/api/product/store`        |
+| `putUpdate(int $id)`       | `PUT`     | `/api/product/update/{id}`  |
+| `deleteDestroy(int $id)`   | `DELETE`  | `/api/product/destroy/{id}` |
+| `getCustomReport()`        | `GET`     | `/api/product/customreport` |
 
-### 3. Improved Error Handling
-- **Exception-based Flow:** Critical errors, such as a missing controller or class, now throw exceptions instead of being silently logged. A global exception handler provides detailed debug information in development environments and generic, safe error pages in production.
+## Quick Start: Your First API in 90 Seconds
 
-## Future Development
-This framework is actively being improved with the goal of adding more advanced features, including:
-- An advanced routing system (named routes, groups, HTTP method-based routing).
-- A database migration system.
-- Automatic API documentation generation.
-- An expressive query builder.
+Let's create a complete CRUD API for "posts".
+
+### 1. Generate the API Resource
+
+Open your terminal and run the single `make:api` command:
+
+```bash
+php ace.php make:api Post
+```
+
+This command automatically creates:
+- A **migration file** to create the `posts` table.
+- A `Post` **model**.
+- A `PostController` with all conventional CRUD methods (e.g., `getIndex`, `getShow`) and API documentation attributes.
+
+### 2. Customize Your Migration
+
+Open the newly created migration file and add the columns you need, like `title` and `body`.
+
+### 3. Run the Migration
+
+```bash
+php ace.php migrate
+```
+
+### 4. Generate and View API Docs
+
+```bash
+php ace.php docs:generate
+```
+
+Open your browser and navigate to `/api/docs`. You will see a complete, interactive Swagger UI documentation for your new Posts API.
+
+**That's it! You now have a fully documented, functional CRUD API without ever defining a single route.**
+
+## The `ace` Console Tool
+
+All framework tasks are handled by the `ace` console tool.
+
+- `php ace.php make:api [Name]`
+  - Scaffolds a new API resource. `[Name]` should be the singular, PascalCase name of your resource (e.g., `Product`, `BlogPost`).
+
+- `php ace.php migrate`
+  - Runs any pending database migrations.
+
+- `php ace.php docs:generate`
+  - Generates/updates the `openapi.json` file from your controller attributes.
 
 ---
-*This document was last updated on 2025-10-13.*
+*Built with simplicity by ED.*

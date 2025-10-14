@@ -182,31 +182,16 @@ class Exception  extends \Exception implements IfException
  * @param unknown $filename
  * @param unknown $line
  */
-function handler($severity, $message, $filename, $line)
+function handler(int $severity, string $message, string $filename, int $line): void
 {
-    switch ($severity)
-    {
-        case E_NOTICE:
-        case E_USER_NOTICE:
-            $errors = "Notice";
-            break;
+    $errors = match ($severity) {
+        E_NOTICE, E_USER_NOTICE => "Notice",
+        E_WARNING, E_USER_WARNING => "Warning",
+        E_ERROR, E_USER_ERROR => "Fatal Error",
+        default => "Unknown Error",
+    };
 
-        case E_WARNING:
-        case E_USER_WARNING:
-            $errors = "Warning";
-            break;
-
-        case E_ERROR:
-        case E_USER_ERROR:
-            $errors = "Fatal Error";
-            break;
-
-        default:
-            $errors = "Unknown Error";
-            break;
-    }
-    if(MODE == 'production')
-    {
+    if (MODE === 'production') {
         error_log(sprintf("PHP %s:  %s in %s on line %d", $errors, $message, $filename, $line));
     }
     else

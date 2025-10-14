@@ -1,0 +1,70 @@
+<?php declare(strict_types=1);
+
+namespace APP\Http\Controllers;
+
+use APP\Attributes\Summary;
+use APP\Attributes\Param;
+use APP\Attributes\Response;
+use APP\Models\{{modelName}};
+
+class {{className}} extends \APP\Control
+{
+    #[Summary('List all {{tableName}}')]
+    #[Response(200, 'A list of {{tableName}}.')]
+    public function getIndex(): array
+    {
+        return {{modelName}}::get();
+    }
+
+    #[Summary('Create a new {{variableName}}')]
+    #[Response(201, 'The created {{variableName}}.')]
+    public function postStore(): array
+    {
+        // $data = $this->input->json();
+        // {{modelName}}::insert($data);
+        // For demonstration:
+        $data = ['name' => 'New {{variableName}}', 'price' => 99.99];
+        {{modelName}}::insert($data);
+        return $data;
+    }
+
+    #[Summary('Get a single {{variableName}}')]
+    #[Param('id', 'integer', 'path', true, 'The ID of the {{variableName}}.')]
+    #[Response(200, 'The requested {{variableName}}.')]
+    #[Response(404, '{{modelName}} not found.')]
+    public function getShow(int $id): ?array
+    {
+        return {{modelName}}::find($id);
+    }
+
+    #[Summary('Update a {{variableName}}')]
+    #[Param('id', 'integer', 'path', true, 'The ID of the {{variableName}} to update.')]
+    #[Response(200, '{{modelName}} updated successfully.')]
+    #[Response(404, '{{modelName}} not found.')]
+    public function putUpdate(int $id): array
+    {
+        // $data = $this->input->json();
+        $data = ['name' => 'Updated {{variableName}}'];
+        $affectedRows = {{modelName}}::where('id', '=', $id)->update($data);
+
+        if ($affectedRows === 0) {
+            // This will be automatically converted to a 404 JSON response.
+            return ['error' => '{{modelName}} not found or no changes made'];
+        }
+        return ['message' => '{{modelName}} updated'];
+    }
+
+    #[Summary('Delete a {{variableName}}')]
+    #[Param('id', 'integer', 'path', true, 'The ID of the {{variableName}} to delete.')]
+    #[Response(204, '{{modelName}} deleted successfully.')]
+    #[Response(404, '{{modelName}} not found.')]
+    public function deleteDestroy(int $id): ?array
+    {
+        $affectedRows = {{modelName}}::where('id', '=', $id)->delete();
+        if ($affectedRows === 0) {
+            return ['error' => '{{modelName}} not found'];
+        }
+        // Returning null with a 204 status code will be handled automatically.
+        return null;
+    }
+}

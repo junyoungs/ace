@@ -1,20 +1,20 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace CORE;
+
+use Redis;
 
 class Cache
 {
     /**
      * The Redis connection instance.
-     * @var \Redis
      */
-    protected $redis;
+    protected Redis $redis;
 
     /**
      * The cache key prefix.
-     * @var string
      */
-    protected $prefix = 'framework_cache:';
+    protected string $prefix = 'ace_cache:';
 
     public function __construct()
     {
@@ -24,12 +24,8 @@ class Cache
 
     /**
      * Retrieve an item from the cache by key.
-     *
-     * @param  string  $key
-     * @param  mixed   $default
-     * @return mixed
      */
-    public function get($key, $default = null)
+    public function get(string $key, mixed $default = null): mixed
     {
         $value = $this->redis->get($this->prefix . $key);
         return $value !== false ? unserialize($value) : $default;
@@ -37,13 +33,8 @@ class Cache
 
     /**
      * Store an item in the cache for a given number of seconds.
-     *
-     * @param  string  $key
-     * @param  mixed   $value
-     * @param  int     $seconds
-     * @return bool
      */
-    public function set($key, $value, $seconds = 3600)
+    public function set(string $key, mixed $value, int $seconds = 3600): bool
     {
         return $this->redis->setex(
             $this->prefix . $key,
@@ -54,12 +45,8 @@ class Cache
 
     /**
      * Store an item in the cache indefinitely.
-     *
-     * @param  string  $key
-     * @param  mixed   $value
-     * @return bool
      */
-    public function forever($key, $value)
+    public function forever(string $key, mixed $value): bool
     {
         return $this->redis->set(
             $this->prefix . $key,
@@ -69,22 +56,16 @@ class Cache
 
     /**
      * Check if an item exists in the cache.
-     *
-     * @param  string  $key
-     * @return bool
      */
-    public function has($key)
+    public function has(string $key): bool
     {
         return (bool) $this->redis->exists($this->prefix . $key);
     }
 
     /**
      * Remove an item from the cache.
-     *
-     * @param  string  $key
-     * @return bool
      */
-    public function forget($key)
+    public function forget(string $key): bool
     {
         return (bool) $this->redis->del($this->prefix . $key);
     }
@@ -92,10 +73,8 @@ class Cache
     /**
      * Remove all items from the cache.
      * This is a dangerous operation, use with caution.
-     *
-     * @return bool
      */
-    public function flush()
+    public function flush(): bool
     {
         // In a real application, you might want a more sophisticated way
         // to flush only application-specific keys.

@@ -1,6 +1,6 @@
 <?php
 
-namespace PROJECT\MODEL;
+namespace APP\Models;
 
 class User extends \APP\Model
 {

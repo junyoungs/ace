@@ -1,21 +1,20 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace CORE;
+
+use Redis;
 
 class Event
 {
     /**
      * The Redis connection instance for publishing.
-     * @var \Redis
      */
-    protected static $redis;
+    protected static ?Redis $redis = null;
 
     /**
      * Get the Redis connection.
-     *
-     * @return \Redis
      */
-    protected static function redis()
+    protected static function redis(): Redis
     {
         if (!static::$redis) {
             // Use the 'default' redis connection for broadcasting
@@ -27,11 +26,9 @@ class Event
     /**
      * Publish an event to a given channel.
      *
-     * @param string $channel The channel to publish to.
-     * @param array  $data    The data to broadcast.
-     * @return int The number of clients that received the message.
+     * @return int|false The number of clients that received the message. False on error.
      */
-    public static function publish($channel, array $data)
+    public static function publish(string $channel, array $data): int|false
     {
         // We'll wrap the data with some metadata
         $payload = json_encode([
