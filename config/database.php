@@ -59,42 +59,4 @@ return [
 
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Redis Databases
-    |--------------------------------------------------------------------------
-    |
-    | Redis is an open source, fast, networked, in-memory, key-value data
-    | store, with optional durability. It's used as a cache and session
-    | driver.
-    |
-    */
-
-    'redis' => [
-
-        'client' => 'phpredis',
-
-        'default' => [
-            'host' => '127.0.0.1',
-            'password' => null,
-            'port' => 6379,
-            'database' => 0,
-        ],
-
-        'cache' => [
-            'host' => '127.0.0.1',
-            'password' => null,
-            'port' => 6379,
-            'database' => 1,
-        ],
-
-        'session' => [
-            'host' => '127.0.0.1',
-            'password' => null,
-            'port' => 6379,
-            'database' => 2,
-        ],
-
-    ],
-
 ];

@@ -32,7 +32,7 @@ class Router
             return;
         }
 
-        $controllerPath = HOSTPATH . DIRECTORY_SEPARATOR . 'control';
+        $controllerPath = __DIR__ . '/../app/Http/Controllers';
         if (!is_dir($controllerPath)) return;
 
         $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($controllerPath));

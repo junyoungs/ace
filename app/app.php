@@ -56,8 +56,40 @@ class App
 
 		$control = new $c($f, $c, $m, $router, $input, $security, $session, $crypt);
 
-		// Call the controller method with route parameters
-		call_user_func_array([$control, $m], $params);
+		// Call the controller method and get the response
+		$response = call_user_func_array([$control, $m], $params);
+
+		// --- Automatic JSON Response Transformation ---
+		self::handleResponse($response);
+	}
+
+	public static function handleResponse(mixed $response): void
+	{
+		if ($response === null) {
+			http_response_code(204); // No Content
+			return;
+		}
+
+		if (is_array($response) || is_object($response)) {
+			header('Content-Type: application/json');
+
+			// Set status code based on request method for successful responses
+			if (!http_response_code() || http_response_code() < 300) {
+				$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+				switch ($method) {
+					case 'POST':
+						http_response_code(201); // Created
+						break;
+					default:
+						http_response_code(200); // OK
+						break;
+				}
+			}
+			echo json_encode($response);
+		} else {
+			// For other types, like string, just echo it (legacy support).
+			echo $response;
+		}
 	}
 }
 

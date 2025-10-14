@@ -1,5 +1,7 @@
 <?php declare(strict_types=1);
 
+namespace APP\Http\Controllers;
+
 use APP\Attributes\Route;
 use APP\Attributes\Summary;
 use APP\Attributes\Description;
@@ -13,12 +15,9 @@ class ExampleController extends \APP\Control
     #[Description('This endpoint returns a personalized greeting to the user.')]
     #[Param('name', 'string', 'path', true, 'The name of the user to greet.')]
     #[Response(200, 'A successful greeting.', exampleJson: '{ "message": "Hello, [name]!" }')]
-    #[Response(404, 'The user was not found.', exampleJson: '{ "error": "User not found" }')]
-    public function hello(string $name): void
+    public function hello(string $name): array
     {
-        // Simple JSON output
-        header('Content-Type: application/json');
-        echo json_encode(['message' => "Hello, " . htmlspecialchars($name) . "!"]);
+        return ['message' => "Hello, " . htmlspecialchars($name) . "!"];
     }
 
     #[Route('/users/create', method: 'POST')]
@@ -27,7 +26,7 @@ class ExampleController extends \APP\Control
     #[Param('name', 'string', 'body', true, 'The name of the new user.')]
     #[Param('email', 'string', 'body', true, 'The email of the new user.')]
     #[Response(201, 'User created and event broadcasted.', exampleJson: '{ "status": "success", "user": { "id": 1, "name": "Jane Doe", "email": "jane@example.com" } }')]
-    public function createUser(): void
+    public function createUser(): array
     {
         // In a real app, you would get this from the request body, e.g., $this->input->post('name');
         $name = 'Jane Doe';
@@ -35,13 +34,9 @@ class ExampleController extends \APP\Control
 
         // 1. Create user in the database (simulation)
         $newUser = ['id' => rand(1, 1000), 'name' => $name, 'email' => $email];
-        // \PROJECT\MODEL\User::insert($newUser);
+        // \APP\Models\User::insert($newUser);
 
-        // 2. Publish an event
-        \CORE\Event::publish('user.created', $newUser);
-
-        // 3. Return a response
-        header('Content-Type: application/json', true, 201);
-        echo json_encode(['status' => 'success', 'user' => $newUser]);
+        // 2. Return a response
+        return ['status' => 'success', 'user' => $newUser];
     }
 }

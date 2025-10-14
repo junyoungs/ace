@@ -14,9 +14,10 @@
     "autoload": {
         "psr-4": {
             "APP\\": "app/",
+            "APP\\Http\\Controllers\\": "app/Http/Controllers/",
+            "APP\\Models\\": "app/Models/",
             "CORE\\": "core/",
-            "DATABASE\\": "database/",
-            "PROJECT\\MODEL\\": "model/"
+            "DATABASE\\": "database/"
         },
         "files": [
             "func/default.php",
