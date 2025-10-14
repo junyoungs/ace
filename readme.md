@@ -6,121 +6,72 @@ Our core philosophy is **Absolute Simplicity**. ACE strips away non-essential fe
 
 ## Key Features
 
-- **Zero-Config Routing**: No route files. No route attributes. Just name your controller methods with a `get`, `post`, `put`, or `delete` prefix, and your API endpoints are live instantly.
-- **Automatic Code Generation**: Create full CRUD API resources with a single command.
+- **Zero-Config Routing**: Just name your controller methods with a `get`, `post`, `put`, or `delete` prefix, and your API endpoints are live instantly.
+- **Automatic Code Generation**: A powerful CLI (`./ace`) to create full CRUD API resources with a single command.
 - **Attribute-Based API Docs**: Define your API documentation with simple PHP 8 attributes right above your controller methods.
-- **Effortless JSON Responses**: Just return an array or object from your controller, and ACE will automatically convert it to a JSON response with the correct headers and status codes.
-- **Explicit & Safe SQL**: No complex query builders. Write clear, explicit SQL queries that are easy to debug and tune. All queries are safely executed using prepared statements to prevent SQL injection.
-- **Simple Migrations**: A straightforward CLI-based migration system to manage your database schema.
+- **Effortless JSON Responses**: The framework automatically converts controller return values into JSON responses with correct status codes.
+- **Explicit & Safe SQL**: Write clear, explicit SQL queries that are easy to debug and tune, all safely executed with prepared statements.
+- **High-Performance Ready**: Built to run on high-performance application servers like RoadRunner, with support for PSR-7 standards.
 
 ## Quick Start: Your First API in 90 Seconds
 
-Let's create a complete CRUD API for "posts".
+### 1. Initial Setup
+Make the `ace` command-line tool executable. You only need to do this once.
+```bash
+chmod +x ace.php
+```
 
-### 1. Generate the API Resource
-
+### 2. Generate the API Resource
+Use the `make:api` command to create all the necessary files for a "Post" resource.
 ```bash
 ./ace make:api Post
 ```
-This command creates the migration, model, and controller for your Post resource.
 
-### 2. Customize and Run Migration
-
-Edit the generated migration file in `database/migrations/` to add your columns, then run it.
+### 3. Customize and Run Migration
+Edit the new migration file in `database/migrations/` to add your columns, then run it.
 ```bash
 ./ace migrate
 ```
 
-### 3. Review Your Controller
+### 4. Start the Development Server
+Run the high-performance development server.
+```bash
+./ace serve
+```
+Your API is now running on `http://localhost:8080`.
 
-Open `app/Http/Controllers/PostController.php`. You will see that all the database queries are written in plain, easy-to-read SQL.
-
-### 4. Generate and View API Docs
-
+### 5. Generate and View API Docs
+In a separate terminal, generate the API documentation.
 ```bash
 ./ace docs:generate
 ```
-Open your browser and navigate to `/api/docs` to see your fully documented API.
+Open your browser and navigate to `http://localhost:8080/api/docs` to see your fully documented, interactive API.
 
-## Database Usage: Explicit & Safe
+## Development with the `ace` Console Tool
+- `./ace make:api [Name]`: Scaffolds a new API resource (Model, Controller, Migration).
+- `./ace migrate`: Runs any pending database migrations.
+- `./ace docs:generate`: Generates/updates the API documentation.
+- `./ace serve`: Starts the RoadRunner development server.
 
-ACE encourages writing explicit SQL for clarity and performance. All database interactions are handled through two simple, static methods on your Model.
+## Production Deployment with Docker
 
-### Fetching Data (`select`)
+ACE is designed to be deployed as a high-performance service using Docker and RoadRunner.
 
-To run a `SELECT` query and get results, use the `select` method.
-
-```php
-// Get all posts
-$posts = Post::select("SELECT * FROM posts");
-
-// Get a single post with a binding
-$post = Post::select("SELECT * FROM posts WHERE id = ?", [$id]);
+### 1. Build the Docker Image
+A sample `Dockerfile` is included in the project root. Build your production image with:
+```bash
+docker build -t my-ace-api .
 ```
 
-### Modifying Data (`statement`)
+### 2. Prepare `.env` and `.roadrunner.yaml`
+Create your production `.env` file with your database credentials and other settings. Also, ensure your `.roadrunner.yaml` is configured for your production environment (e.g., increase the number of workers).
 
-To run `INSERT`, `UPDATE`, or `DELETE` queries, use the `statement` method. It returns the number of affected rows.
-
-```php
-// Create a new post
-Post::statement(
-    "INSERT INTO posts (title, body) VALUES (?, ?)",
-    ['New Post', 'Content here...']
-);
-
-// Update a post
-$affected = Post::statement(
-    "UPDATE posts SET title = ? WHERE id = ?",
-    ['Updated Title', $id]
-);
+### 3. Run the Container
+Run your application container, passing in your environment file.
+```bash
+docker run -p 80:8080 --env-file ./.env my-ace-api
 ```
-
-### Automatic SQL Commenting for Debugging
-
-**A key feature of ACE is that it automatically adds a comment to every SQL query, indicating the exact file and line number where the query was executed.** This makes debugging and performance tuning incredibly easy. When you check your database logs, you'll see queries like this:
-
-```sql
-SELECT * FROM posts WHERE id = ? /*/app/Http/Controllers/PostController.php:25*/
-```
-
-This tells you instantly which line of code generated the query, eliminating guesswork.
-
-## The `ace` Console Tool
-
-For easier use, make the script executable once: `chmod +x ace.php`
-
-- `./ace make:api [Name]`
-- `./ace migrate`
-- `./ace docs:generate`
-
-## AI-Driven Development
-
-ACE's simplicity and strict conventions make it exceptionally well-suited for development with AI assistants like Claude, Cursor, ChatGPT, or Gemini. The AI can easily understand the framework's structure and generate high-quality, working code with simple prompts.
-
-### Tips for Prompting an AI
-
-- **Be Specific**: Tell the AI you are using the "ACE Framework".
-- **Leverage the Conventions**: Ask the AI to create a controller method that follows the naming conventions. It will understand.
-- **Use `make:api` as a Base**: For new features, you can ask the AI to "start by running `make:api` and then modify the generated files."
-
-### Example Prompt
-
-> "I'm using the ACE Framework. I need a new feature in my `ProductController` to get a list of all out-of-stock products. Create a new method called `getOutOfStock` that returns all products where the `quantity` column is 0. Also, add a summary attribute for the API documentation."
-
-The AI will understand the framework's conventions and should be able to generate the following method for you, ready to go:
-
-```php
-// In app/Http/Controllers/ProductController.php
-
-#[Summary('List all out-of-stock products')]
-#[Response(200, 'A list of out-of-stock products.')]
-public function getOutOfStock(): array
-{
-    return Product::select("SELECT * FROM products WHERE quantity = ?", [0]);
-}
-```
-The new endpoint `GET /api/product/outofstock` will be instantly live.
+Your high-performance API service is now live.
 
 ---
 *Built with simplicity by ED.*

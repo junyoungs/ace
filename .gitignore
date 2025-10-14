@@ -1,6 +1,10 @@
 # Environment file
 .env
 
+# RoadRunner
+/.roadrunner.yaml
+/rr
+
 # Composer dependencies
 /vendor/
 

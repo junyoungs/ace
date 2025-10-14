@@ -40,7 +40,7 @@ abstract class Model
 		if(!empty($tmp[0])) $this->driver = strtolower(trim((string)array_shift($tmp)));
 		else $this->driver = 'mysql';
 
-		$this->db = Core::get('Db')->driver($this->driver);
+		$this->db = app('Db')->driver($this->driver);
 	}
 
     /**

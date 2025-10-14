@@ -70,12 +70,9 @@ class Router
         }
     }
 
-    public function dispatch(): void
+    public function dispatch(string $requestUri, string $httpMethod): void
     {
-        $requestUri = '/' . $this->__detect();
-        $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-
-        $routesForMethod = self::$routeMap[$httpMethod] ?? [];
+        $routesForMethod = self::$routeMap[strtoupper($httpMethod)] ?? [];
 
         foreach ($routesForMethod as $uriPattern => $routeData) {
             $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '([^/]+)', $uriPattern);
