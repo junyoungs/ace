@@ -58,5 +58,37 @@ function redkokoPriceFormat($price, $curr, $format = TRUE)
     return \APP\App::singleton('unit', 'calculation.price')->redkokoFormat($price, $curr, $format);
 }
 
+/**
+ * Gets the value of an environment variable.
+ *
+ * @param  string  $key
+ * @param  mixed   $default
+ * @return mixed
+ */
+function env($key, $default = null)
+{
+    return $_ENV[$key] ?? $default;
+}
+
+/**
+ * Get the available container instance.
+ *
+ * @param  string|null  $abstract
+ * @return mixed|\CORE\Core
+ */
+function app($abstract = null)
+{
+    static $container = null;
+    if (is_null($container)) {
+        $container = require_once(WORKSPATH . '/bootstrap/app.php');
+    }
+
+    if (is_null($abstract)) {
+        return $container;
+    }
+
+    return $container->get($abstract);
+}
+
 /* End of file func.php */
 /* Location: ./boot/func.php */

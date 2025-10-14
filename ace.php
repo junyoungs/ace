@@ -1,3 +1,4 @@
+#!/usr/bin/env php
 <?php declare(strict_types=1);
 
 // Bootstrap the framework for CLI environment
@@ -17,6 +18,7 @@ if (empty($args)) {
     echo "  migrate           Run the database migrations\n";
     echo "  docs:generate     Generate API documentation\n";
     echo "  make:api [name]   Create a new API resource (Model, Migration, Controller)\n";
+    echo "  serve             Start the high-performance server (RoadRunner)\n";
     exit(0);
 }
 
@@ -36,6 +38,9 @@ switch ($command) {
             exit(1);
         }
         make_api_resource($name);
+        break;
+    case 'serve':
+        start_server();
         break;
     default:
         echo "Error: Command '{$command}' not found.\n";
@@ -131,4 +136,40 @@ function generate_api_docs()
 function make_api_resource(string $name) { /* ... */ }
 function run_migrations() { /* ... */ }
 function ensure_migrations_table_exists(DatabaseDriverInterface $db): void { /* ... */ }
+function start_server()
+{
+    $rr_path = __DIR__ . '/rr';
+    $config_path = __DIR__ . '/.roadrunner.yaml';
+
+    if (!file_exists($rr_path) || !file_exists($config_path)) {
+        echo "RoadRunner executable or config not found.\n";
+        echo "Please install RoadRunner to use the 'serve' command:\n";
+        echo "1. Download the server binary: https://github.com/roadrunner-server/roadrunner/releases\n";
+        echo "2. Place it in the project root as 'rr'.\n";
+        echo "3. Create a '.roadrunner.yaml' file in the project root (a default one will be created for you now).\n";
+
+        if (!file_exists($config_path)) {
+            $default_config = <<<YAML
+rpc:
+  listen: tcp://127.0.0.1:6001
+
+server:
+  command: "php server.php"
+  relay: "pipes"
+
+http:
+  address: "0.0.0.0:8080"
+  pool:
+    num_workers: 1
+YAML;
+            file_put_contents($config_path, $default_config);
+            echo "Created default '.roadrunner.yaml'. Please configure it if needed.\n";
+        }
+        exit(1);
+    }
+
+    echo "Starting RoadRunner server on http://127.0.0.1:8080\n";
+    passthru(PHP_BINARY . " {$rr_path} serve");
+}
+
 function get_class_from_file(string $path): ?string { /* ... */ }

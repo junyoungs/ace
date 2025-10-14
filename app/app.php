@@ -2,96 +2,93 @@
 
 namespace APP;
 
-use \CORE\Core;
 use \Exception;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\ResponseInterface;
+use Laminas\Diactoros\ServerRequestFactory;
+use Laminas\Diactoros\Response as Psr7Response;
+use Laminas\HttpHandlerRunner\Emitter\SapiEmitter;
 
 /**
- * App
- *
- * @author		Junyoung Park
- * @copyright	Copyright (c) 2016.
- * @license		LGPL
- * @version		1.0.0
- * @namespace	\APP
+ * App Kernel
  */
 class App
 {
-
-	/**
-	 * run control
-	 */
+    /**
+     * Entry point for traditional CGI environments (like Apache/Nginx + PHP-FPM).
+     */
 	public static function run(): void
 	{
-		$router = Core::get('Router');
-		$router->dispatch();
-
-		// Get details from the router after dispatching
-		$f = $router->getFile();
-		$c = $router->getControl();
-		$m = $router->getMethod();
-		$params = $router->getParams();
-
-		// If control is empty, it means a closure was handled or 404 was thrown.
-		if (empty($c)) {
-			return;
-		}
-
-		self::loadAbstract('control');
-
-		if (!empty($f) && \setRequire($f) === false) {
-			throw new Exception('Controller file not found: ' . $f);
-		}
-		if (!class_exists($c)) {
-			throw new Exception('Controller class not found: ' . $c);
-		}
-		if (!method_exists($c, $m)) {
-			throw new Exception('Method not found in controller: ' . $c . '::' . $m);
-		}
-
-		// Dependencies for the controller
-		$input    = Core::get('Input');
-		$security = Core::get('Security');
-		$session  = Core::get('Session');
-		$crypt    = Core::get('Crypt');
-
-		$control = new $c($f, $c, $m, $router, $input, $security, $session, $crypt);
-
-		// Call the controller method and get the response
-		$response = call_user_func_array([$control, $m], $params);
-
-		// --- Automatic JSON Response Transformation ---
-		self::handleResponse($response);
+        $request = ServerRequestFactory::fromGlobals();
+        $response = self::handle($request);
+        (new SapiEmitter())->emit($response);
 	}
 
-	public static function handleResponse(mixed $response): void
+    /**
+     * Handles a PSR-7 request and returns a PSR-7 response.
+     * This is the core logic for both traditional and high-performance servers.
+     */
+    public static function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        $container = app();
+        $container->flushRequestState();
+        $container->singleton('Request', fn() => $request);
+
+        try {
+            $router = $container->get('Router');
+            $router->dispatch($request->getUri()->getPath(), $request->getMethod());
+
+            $controllerClass = $router->getControl();
+            $method = $router->getMethod();
+            $params = $router->getParams();
+
+            $responsePayload = null;
+            if (!empty($controllerClass)) {
+                if (!class_exists($controllerClass) || !method_exists($controllerClass, $method)) {
+                    throw new Exception("Endpoint not found: {$controllerClass}::{$method}", 404);
+                }
+
+                $controller = new $controllerClass(
+                    $router->getFile(), $controllerClass, $method,
+                    $router, $container->get('Input'), $container->get('Security'),
+                    $container->get('Session'), $container->get('Crypt')
+                );
+                $responsePayload = call_user_func_array([$controller, $method], $params);
+            }
+            return self::createResponse($responsePayload, $request->getMethod());
+
+        } catch (\Throwable $e) {
+            return new Psr7Response(
+                json_encode(['error' => $e->getMessage()]),
+                $e->getCode() >= 400 ? $e->getCode() : 500,
+                ['Content-Type' => 'application/json']
+            );
+        }
+    }
+
+	private static function createResponse(mixed $payload, string $httpMethod): ResponseInterface
 	{
-		if ($response === null) {
-			http_response_code(204); // No Content
-			return;
+        $response = new Psr7Response();
+
+        if ($payload === null) {
+            return $response->withStatus(204);
 		}
 
-		if (is_array($response) || is_object($response)) {
-			header('Content-Type: application/json');
+		if (is_array($payload) || is_object($payload)) {
+			$response->getBody()->write(json_encode($payload));
+            $response = $response->withHeader('Content-Type', 'application/json');
 
-			// Set status code based on request method for successful responses
-			if (!http_response_code() || http_response_code() < 300) {
-				$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-				switch ($method) {
-					case 'POST':
-						http_response_code(201); // Created
-						break;
-					default:
-						http_response_code(200); // OK
-						break;
+            $statusCode = $response->getStatusCode();
+			if ($statusCode < 300) {
+				switch ($httpMethod) {
+					case 'POST': return $response->withStatus(201);
+					default: return $response->withStatus(200);
 				}
 			}
-			echo json_encode($response);
-		} else {
-			// For other types, like string, just echo it (legacy support).
-			echo $response;
+            return $response;
 		}
+
+        $response->getBody()->write((string)$payload);
+        return $response;
 	}
 }
-
-/* End of file app.php */
-/* Location: ./app/app.php */

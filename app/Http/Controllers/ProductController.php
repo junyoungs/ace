@@ -13,7 +13,7 @@ class ProductController extends \APP\Control
     #[Response(200, 'A list of products.', exampleJson: '[{"id": 1, "name": "Laptop", "price": "1200.50"}]')]
     public function getIndex(): array
     {
-        return Product::get();
+        return Product::select("SELECT * FROM products ORDER BY id DESC");
     }
 
     #[Summary('Get a single product')]
@@ -22,12 +22,12 @@ class ProductController extends \APP\Control
     #[Response(404, 'Product not found.', exampleJson: '{"error": "Product not found"}')]
     public function getShow(int $id): ?array
     {
-        $product = Product::find($id);
-        if (!$product) {
+        $product = Product::select("SELECT * FROM products WHERE id = ?", [$id]);
+        if (empty($product)) {
             http_response_code(404);
             return ['error' => 'Product not found'];
         }
-        return $product;
+        return $product[0];
     }
 
     #[Summary('Create a new product')]
@@ -37,9 +37,14 @@ class ProductController extends \APP\Control
     public function postStore(): array
     {
         // In a real app, you would get data from the request body.
-        $data = ['name' => 'Mouse', 'price' => 25.00];
-        Product::insert($data);
-        // A more complete implementation would fetch and return the created product.
+        $data = ['name' => 'Mouse', 'price' => 25.00, 'description' => 'A wireless mouse.'];
+
+        Product::statement(
+            "INSERT INTO products (name, price, description) VALUES (?, ?, ?)",
+            [$data['name'], $data['price'], $data['description']]
+        );
+
+        // A more complete implementation would fetch the last inserted ID and return the full object.
         return $data;
     }
 
@@ -49,8 +54,13 @@ class ProductController extends \APP\Control
     #[Response(404, 'Product not found.', exampleJson: '{"error": "Product not found"}')]
     public function putUpdate(int $id): array
     {
+        // In a real app, you would get data from the request body.
         $data = ['price' => 29.99];
-        $affectedRows = Product::where('id', '=', $id)->update($data);
+
+        $affectedRows = Product::statement(
+            "UPDATE products SET price = ? WHERE id = ?",
+            [$data['price'], $id]
+        );
 
         if ($affectedRows === 0) {
             http_response_code(404);
@@ -65,7 +75,7 @@ class ProductController extends \APP\Control
     #[Response(404, 'Product not found.', exampleJson: '{"error": "Product not found"}')]
     public function deleteDestroy(int $id): ?array
     {
-        $affectedRows = Product::where('id', '=', $id)->delete();
+        $affectedRows = Product::statement("DELETE FROM products WHERE id = ?", [$id]);
         if ($affectedRows === 0) {
             http_response_code(404);
             return ['error' => 'Product not found'];

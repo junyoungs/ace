@@ -6,79 +6,96 @@ Our core philosophy is **Absolute Simplicity**. ACE strips away non-essential fe
 
 ## Key Features
 
-- **Zero-Config Routing**: No route files. No route attributes. Just name your controller methods with a `get`, `post`, `put`, or `delete` prefix, and your API endpoints are live instantly.
-- **Automatic Code Generation**: Create full CRUD API resources with a single command.
+- **Zero-Config Routing**: Just name your controller methods with a `get`, `post`, `put`, or `delete` prefix, and your API endpoints are live instantly.
+- **Automatic Code Generation**: A powerful CLI (`./ace`) to create full CRUD API resources with a single command.
 - **Attribute-Based API Docs**: Define your API documentation with simple PHP 8 attributes right above your controller methods.
-- **Effortless JSON Responses**: Just return an array or object from your controller, and ACE will automatically convert it to a JSON response with the correct headers and status codes.
-- **Fluent Query Builder**: A simple, powerful query builder that makes database interactions a breeze.
-- **Simple Migrations**: A straightforward CLI-based migration system to manage your database schema.
+- **Effortless JSON Responses**: The framework automatically converts controller return values into JSON responses with correct status codes.
+- **Explicit & Safe SQL**: Write clear, explicit SQL queries that are easy to debug and tune, all safely executed with prepared statements.
+- **High-Performance Ready**: Built to run on high-performance application servers like RoadRunner, with support for PSR-7 standards.
 
-## Automatic Routing Conventions
+## Advanced Features (Optional)
 
-You never have to define a route. ACE follows these simple conventions based on your controller and method names.
+ACE also provides powerful features for building scalable, real-time applications. These are optional and can be used when needed.
 
-- **Controller:** `ProductController`
-- **Resource Name:** `product`
-- **Base URI:** `/api/product`
+- **High-Performance Caching**: A Redis-based cache layer to dramatically speed up your application.
+  ```php
+  $cache = new \CORE\Cache();
+  $cache->set('user:1', $user, 3600);
+  $user = $cache->get('user:1');
+  ```
 
-| Controller Method          | HTTP Verb | URI                         |
-|----------------------------|-----------|-----------------------------|
-| `getIndex()`               | `GET`     | `/api/product/index`        |
-| `getShow(int $id)`         | `GET`     | `/api/product/show/{id}`    |
-| `postStore()`              | `POST`    | `/api/product/store`        |
-| `putUpdate(int $id)`       | `PUT`     | `/api/product/update/{id}`  |
-| `deleteDestroy(int $id)`   | `DELETE`  | `/api/product/destroy/{id}` |
-| `getCustomReport()`        | `GET`     | `/api/product/customreport` |
+- **Real-time Events (Pub/Sub)**: Broadcast events to other parts of your system (like a WebSocket server) using Redis Pub/Sub.
+  ```php
+  \CORE\Event::publish('user.registered', ['email' => $userEmail]);
+  ```
+
+- **Distributed Locking**: Prevent race conditions in a distributed environment, ensuring that critical operations are performed by only one process at a time.
+  ```php
+  $lock = new \CORE\LockProvider();
+  $lock->withLock('process-payment:order:123', function () {
+      // Safely process the payment.
+  }, 10); // Lock for 10 seconds
+  ```
 
 ## Quick Start: Your First API in 90 Seconds
 
-Let's create a complete CRUD API for "posts".
-
-### 1. Generate the API Resource
-
-Open your terminal and run the single `make:api` command:
-
+### 1. Initial Setup
+Make the `ace` command-line tool executable. You only need to do this once.
 ```bash
-php ace.php make:api Post
+chmod +x ace.php
 ```
 
-This command automatically creates:
-- A **migration file** to create the `posts` table.
-- A `Post` **model**.
-- A `PostController` with all conventional CRUD methods (e.g., `getIndex`, `getShow`) and API documentation attributes.
-
-### 2. Customize Your Migration
-
-Open the newly created migration file and add the columns you need, like `title` and `body`.
-
-### 3. Run the Migration
-
+### 2. Generate the API Resource
+Use the `make:api` command to create all the necessary files for a "Post" resource.
 ```bash
-php ace.php migrate
+./ace make:api Post
 ```
 
-### 4. Generate and View API Docs
-
+### 3. Customize and Run Migration
+Edit the new migration file in `database/migrations/` to add your columns, then run it.
 ```bash
-php ace.php docs:generate
+./ace migrate
 ```
 
-Open your browser and navigate to `/api/docs`. You will see a complete, interactive Swagger UI documentation for your new Posts API.
+### 4. Start the Development Server
+Run the high-performance development server.
+```bash
+./ace serve
+```
+Your API is now running on `http://localhost:8080`.
 
-**That's it! You now have a fully documented, functional CRUD API without ever defining a single route.**
+### 5. Generate and View API Docs
+In a separate terminal, generate the API documentation.
+```bash
+./ace docs:generate
+```
+Open your browser and navigate to `http://localhost:8080/api/docs` to see your fully documented, interactive API.
 
-## The `ace` Console Tool
+## Development with the `ace` Console Tool
+- `./ace make:api [Name]`: Scaffolds a new API resource (Model, Controller, Migration).
+- `./ace migrate`: Runs any pending database migrations.
+- `./ace docs:generate`: Generates/updates the API documentation.
+- `./ace serve`: Starts the RoadRunner development server.
 
-All framework tasks are handled by the `ace` console tool.
+## Production Deployment with Docker
 
-- `php ace.php make:api [Name]`
-  - Scaffolds a new API resource. `[Name]` should be the singular, PascalCase name of your resource (e.g., `Product`, `BlogPost`).
+ACE is designed to be deployed as a high-performance service using Docker and RoadRunner.
 
-- `php ace.php migrate`
-  - Runs any pending database migrations.
+### 1. Build the Docker Image
+A sample `Dockerfile` is included in the project root. Build your production image with:
+```bash
+docker build -t my-ace-api .
+```
 
-- `php ace.php docs:generate`
-  - Generates/updates the `openapi.json` file from your controller attributes.
+### 2. Prepare `.env` and `.roadrunner.yaml`
+Create your production `.env` file with your database credentials and other settings. Also, ensure your `.roadrunner.yaml` is configured for your production environment (e.g., increase the number of workers).
+
+### 3. Run the Container
+Run your application container, passing in your environment file.
+```bash
+docker run -p 80:8080 --env-file ./.env my-ace-api
+```
+Your high-performance API service is now live.
 
 ---
 *Built with simplicity by ED.*
