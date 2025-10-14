@@ -5,7 +5,6 @@ namespace CORE;
 use \BOOT\Log;
 use \Exception;
 use \ReflectionClass;
-use \APP\Attributes\Route;
 
 class Router
 {
@@ -39,19 +38,38 @@ class Router
         $phpFiles = new \RegexIterator($files, '/\.php$/');
 
         foreach ($phpFiles as $phpFile) {
-            require_once $phpFile->getRealPath();
-            $className = $this->getClassNameFromFile($phpFile->getRealPath());
-
+            $className = get_class_from_file($phpFile->getRealPath());
             if (!$className || !class_exists($className)) continue;
 
             $reflection = new ReflectionClass($className);
+            $resourceName = strtolower(str_replace('Controller', '', $reflection->getShortName()));
+            $baseUri = "/api/{$resourceName}s";
+
             foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
-                $attributes = $method->getAttributes(Route::class, \ReflectionAttribute::IS_INSTANCEOF);
-                foreach ($attributes as $attribute) {
-                    $route = $attribute->newInstance();
-                    $httpMethod = strtoupper($route->method);
-                    self::$routeMap[$httpMethod][$route->uri] = [
-                        'action' => [$className, $method->getName()],
+                $methodName = $method->getName();
+                $route = null;
+
+                switch ($methodName) {
+                    case 'index':
+                        $route = ['method' => 'GET', 'uri' => $baseUri];
+                        break;
+                    case 'show':
+                        $route = ['method' => 'GET', 'uri' => "{$baseUri}/{id}"];
+                        break;
+                    case 'store':
+                        $route = ['method' => 'POST', 'uri' => $baseUri];
+                        break;
+                    case 'update':
+                        $route = ['method' => 'PUT', 'uri' => "{$baseUri}/{id}"];
+                        break;
+                    case 'destroy':
+                        $route = ['method' => 'DELETE', 'uri' => "{$baseUri}/{id}"];
+                        break;
+                }
+
+                if ($route) {
+                    self::$routeMap[$route['method']][$route['uri']] = [
+                        'action' => [$className, $methodName],
                         'file'   => $phpFile->getRealPath(),
                     ];
                 }
@@ -85,16 +103,6 @@ class Router
         $this->handleNotFound();
     }
 
-    private function getClassNameFromFile(string $filePath): ?string
-    {
-        $content = file_get_contents($filePath);
-        if (preg_match('/class\s+([a-zA-Z0-9_]+)/', $content, $matches)) {
-            // This assumes no namespace for controllers, which is the current project state.
-            return $matches[1];
-        }
-        return null;
-    }
-
     private function handleNotFound(): void
     {
         if (MODE === 'development') {
@@ -125,4 +133,30 @@ class Router
     public function getMethod(): string { return $this->method; }
     public function getFile(): string { return $this->file; }
     public function getParams(): array { return $this->params; }
+}
+
+function get_class_from_file(string $path): ?string
+{
+    $content = file_get_contents($path);
+    $tokens = token_get_all($content);
+    $namespace = '';
+    for ($i = 0; $i < count($tokens); $i++) {
+        if ($tokens[$i][0] === T_NAMESPACE) {
+            for ($j = $i + 1; $j < count($tokens); $j++) {
+                if ($tokens[$j] === ';') {
+                    break;
+                }
+                $namespace .= is_array($tokens[$j]) ? $tokens[$j][1] : $tokens[$j];
+            }
+        }
+        if ($tokens[$i][0] === T_CLASS) {
+            for ($j = $i + 1; $j < count($tokens); $j++) {
+                if ($tokens[$j] === '{') {
+                    $className = $tokens[$i+2][1];
+                    return trim($namespace) . '\\' . $className;
+                }
+            }
+        }
+    }
+    return null;
 }

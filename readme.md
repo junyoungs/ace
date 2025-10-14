@@ -6,36 +6,26 @@ Our core philosophy is **Absolute Simplicity**. ACE strips away non-essential fe
 
 ## Key Features
 
-- **Zero-Configuration Feel**: Sensible defaults and auto-discovery let you focus on code, not configuration.
+- **Zero-Config Routing**: No route files. No route attributes. Just create your controller and methods following a simple convention, and your API endpoints are live.
 - **Automatic Code Generation**: Create full CRUD API resources with a single command.
-- **Attribute-Based Routing & Docs**: Define your API routes and documentation together, right in your controller, using PHP 8 attributes.
+- **Attribute-Based API Docs**: Define your API documentation with simple PHP 8 attributes right above your controller methods.
 - **Effortless JSON Responses**: Just return an array or object from your controller, and ACE will automatically convert it to a JSON response with the correct headers and status codes.
 - **Fluent Query Builder**: A simple, powerful query builder that makes database interactions a breeze.
 - **Simple Migrations**: A straightforward CLI-based migration system to manage your database schema.
 
-## Advanced Features (Optional)
+## Automatic Routing Conventions
 
-ACE also provides powerful features for building scalable, real-time applications. These are optional and can be used when needed.
+You never have to define a route. ACE follows these simple conventions:
 
-- **High-Performance Caching**: A Redis-based cache layer to dramatically speed up your application.
-  ```php
-  $cache = new \CORE\Cache();
-  $cache->set('user:1', $user, 3600);
-  $user = $cache->get('user:1');
-  ```
+| Controller Method | HTTP Verb | URI                         |
+|-------------------|-----------|-----------------------------|
+| `index()`         | `GET`     | `/api/products`             |
+| `show(int $id)`   | `GET`     | `/api/products/{id}`        |
+| `store()`         | `POST`    | `/api/products`             |
+| `update(int $id)` | `PUT`     | `/api/products/{id}`        |
+| `destroy(int $id)`| `DELETE`  | `/api/products/{id}`        |
 
-- **Real-time Events (Pub/Sub)**: Broadcast events to other parts of your system (like a WebSocket server) using Redis Pub/Sub.
-  ```php
-  \CORE\Event::publish('user.registered', ['email' => $userEmail]);
-  ```
-
-- **Distributed Locking**: Prevent race conditions in a distributed environment, ensuring that critical operations are performed by only one process at a time.
-  ```php
-  $lock = new \CORE\LockProvider();
-  $lock->withLock('process-payment:order:123', function () {
-      // Safely process the payment.
-  }, 10); // Lock for 10 seconds
-  ```
+*(Example shown for a `ProductController`)*
 
 ## Quick Start: Your First API in 90 Seconds
 
@@ -49,14 +39,14 @@ Open your terminal and run the single `make:api` command:
 php ace.php make:api Post
 ```
 
-This one command automatically creates:
-- A **migration file** to create the `posts` table in `database/migrations/`.
-- A `Post` **model** in `app/Models/`.
-- A `PostController` with all CRUD methods and API documentation attributes in `app/Http/Controllers/`.
+This command automatically creates:
+- A **migration file** to create the `posts` table.
+- A `Post` **model**.
+- A `PostController` with all conventional CRUD methods and API documentation attributes.
 
 ### 2. Customize Your Migration
 
-Open the newly created migration file in `database/migrations/` and add the columns you need for your posts table. For example, add `title` and `body` columns.
+Open the newly created migration file in `database/migrations/` and add the columns you need. For example, add `title` and `body` columns.
 
 ```php
 // ... inside the up() method's CREATE TABLE SQL ...
@@ -81,9 +71,9 @@ Now, generate the API documentation from your new controller.
 php ace.php docs:generate
 ```
 
-Open your browser and navigate to `/api/docs`. You will see a complete, interactive Swagger UI documentation for your new Posts API, including endpoints for creating, reading, updating, and deleting posts.
+Open your browser and navigate to `/api/docs`. You will see a complete, interactive Swagger UI documentation for your new Posts API.
 
-**That's it! You now have a fully documented, functional CRUD API.**
+**That's it! You now have a fully documented, functional CRUD API without ever defining a single route.**
 
 ## The `ace` Console Tool
 

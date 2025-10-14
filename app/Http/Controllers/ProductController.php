@@ -2,7 +2,6 @@
 
 namespace APP\Http\Controllers;
 
-use APP\Attributes\Route;
 use APP\Attributes\Summary;
 use APP\Attributes\Param;
 use APP\Attributes\Response;
@@ -10,7 +9,6 @@ use APP\Models\Product;
 
 class ProductController extends \APP\Control
 {
-    #[Route('/api/products', method: 'GET')]
     #[Summary('List all products')]
     #[Response(200, 'A list of products.', exampleJson: '[{"id": 1, "name": "Laptop", "price": "1200.50"}]')]
     public function index(): array
@@ -18,7 +16,6 @@ class ProductController extends \APP\Control
         return Product::get();
     }
 
-    #[Route('/api/products/{id}', method: 'GET')]
     #[Summary('Get a single product')]
     #[Param('id', 'integer', 'path', true, 'The ID of the product.')]
     #[Response(200, 'The requested product.', exampleJson: '{"id": 1, "name": "Laptop", "price": "1200.50"}')]
@@ -33,7 +30,6 @@ class ProductController extends \APP\Control
         return $product;
     }
 
-    #[Route('/api/products', method: 'POST')]
     #[Summary('Create a new product')]
     #[Param('name', 'string', 'body', true, 'Name of the product.')]
     #[Param('price', 'number', 'body', true, 'Price of the product.')]
@@ -47,7 +43,6 @@ class ProductController extends \APP\Control
         return $data;
     }
 
-    #[Route('/api/products/{id}', method: 'PUT')]
     #[Summary('Update a product')]
     #[Param('id', 'integer', 'path', true, 'The ID of the product to update.')]
     #[Response(200, 'Product updated successfully.', exampleJson: '{"message": "Product updated"}')]
@@ -64,7 +59,6 @@ class ProductController extends \APP\Control
         return ['message' => 'Product updated'];
     }
 
-    #[Route('/api/products/{id}', method: 'DELETE')]
     #[Summary('Delete a product')]
     #[Param('id', 'integer', 'path', true, 'The ID of the product to delete.')]
     #[Response(204, 'Product deleted successfully.')]
