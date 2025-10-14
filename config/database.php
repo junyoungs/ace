@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 return [
 
@@ -6,21 +6,14 @@ return [
     |--------------------------------------------------------------------------
     | Default Database Connection Name
     |--------------------------------------------------------------------------
-    |
-    | Here you may specify which of the database connections below you wish
-    | to use as your default connection for all database work.
-    |
     */
 
-    'default' => 'mysql',
+    'default' => env('DB_CONNECTION', 'mysql'),
 
     /*
     |--------------------------------------------------------------------------
     | Database Connections
     |--------------------------------------------------------------------------
-    |
-    | Here are each of the database connections setup for your application.
-    |
     */
 
     'connections' => [
@@ -28,10 +21,10 @@ return [
         'sqlite' => [
             'driver' => 'sqlite',
             'master' => [
-                'path' => __DIR__ . '/../database/database.sqlite',
+                'path' => env('DB_DATABASE_PATH', __DIR__ . '/../database/database.sqlite'),
             ],
             'slave' => [
-                'path' => __DIR__ . '/../database/database.sqlite',
+                'path' => env('DB_DATABASE_PATH', __DIR__ . '/../database/database.sqlite'),
             ],
         ],
 
@@ -39,53 +32,22 @@ return [
             'driver' => 'mysql',
             'master' => [
                 [
-                    'host' => '127.0.0.1',
-                    'port' => '3306',
-                    'database' => 'framework_db',
-                    'user' => 'root',
-                    'password' => '',
+                    'host' => env('DB_HOST', '127.0.0.1'),
+                    'port' => env('DB_PORT', '3306'),
+                    'database' => env('DB_DATABASE', 'ace_db'),
+                    'user' => env('DB_USERNAME', 'root'),
+                    'password' => env('DB_PASSWORD', ''),
                 ],
             ],
             'slave' => [
                 [
-                    'host' => '127.0.0.1',
-                    'port' => '3306',
-                    'database' => 'framework_db_slave',
-                    'user' => 'root',
-                    'password' => '',
+                    'host' => env('DB_HOST_SLAVE', env('DB_HOST', '127.0.0.1')),
+                    'port' => env('DB_PORT_SLAVE', env('DB_PORT', '3306')),
+                    'database' => env('DB_DATABASE_SLAVE', env('DB_DATABASE', 'ace_db')),
+                    'user' => env('DB_USERNAME_SLAVE', env('DB_USERNAME', 'root')),
+                    'password' => env('DB_PASSWORD_SLAVE', env('DB_PASSWORD', '')),
                 ],
             ],
-        ],
-
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Redis Databases
-    |--------------------------------------------------------------------------
-    |
-    | Redis is an open source, fast, networked, in-memory, key-value data
-    | store, with optional durability. It's used as a cache and session
-    | driver.
-    |
-    */
-
-    'redis' => [
-
-        'client' => 'phpredis',
-
-        'default' => [
-            'host' => '127.0.0.1',
-            'password' => null,
-            'port' => 6379,
-            'database' => 0,
-        ],
-
-        'cache' => [
-            'host' => '127.0.0.1',
-            'password' => null,
-            'port' => 6379,
-            'database' => 1,
         ],
 
     ],

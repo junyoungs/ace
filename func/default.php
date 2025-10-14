@@ -58,5 +58,17 @@ function redkokoPriceFormat($price, $curr, $format = TRUE)
     return \APP\App::singleton('unit', 'calculation.price')->redkokoFormat($price, $curr, $format);
 }
 
+/**
+ * Gets the value of an environment variable.
+ *
+ * @param  string  $key
+ * @param  mixed   $default
+ * @return mixed
+ */
+function env($key, $default = null)
+{
+    return $_ENV[$key] ?? $default;
+}
+
 /* End of file func.php */
 /* Location: ./boot/func.php */

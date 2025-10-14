@@ -94,5 +94,33 @@ For easier use, make the script executable once: `chmod +x ace.php`
 - `./ace migrate`
 - `./ace docs:generate`
 
+## AI-Driven Development
+
+ACE's simplicity and strict conventions make it exceptionally well-suited for development with AI assistants like Claude, Cursor, ChatGPT, or Gemini. The AI can easily understand the framework's structure and generate high-quality, working code with simple prompts.
+
+### Tips for Prompting an AI
+
+- **Be Specific**: Tell the AI you are using the "ACE Framework".
+- **Leverage the Conventions**: Ask the AI to create a controller method that follows the naming conventions. It will understand.
+- **Use `make:api` as a Base**: For new features, you can ask the AI to "start by running `make:api` and then modify the generated files."
+
+### Example Prompt
+
+> "I'm using the ACE Framework. I need a new feature in my `ProductController` to get a list of all out-of-stock products. Create a new method called `getOutOfStock` that returns all products where the `quantity` column is 0. Also, add a summary attribute for the API documentation."
+
+The AI will understand the framework's conventions and should be able to generate the following method for you, ready to go:
+
+```php
+// In app/Http/Controllers/ProductController.php
+
+#[Summary('List all out-of-stock products')]
+#[Response(200, 'A list of out-of-stock products.')]
+public function getOutOfStock(): array
+{
+    return Product::select("SELECT * FROM products WHERE quantity = ?", [0]);
+}
+```
+The new endpoint `GET /api/product/outofstock` will be instantly live.
+
 ---
 *Built with simplicity by ED.*

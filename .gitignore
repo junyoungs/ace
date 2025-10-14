@@ -1,0 +1,21 @@
+# Environment file
+.env
+
+# Composer dependencies
+/vendor/
+
+# Log files
+*.log
+logs/
+*.logs
+
+# Temporary files
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+
+# SQLite Database
+database/*.sqlite
+database/*.sqlite-journal

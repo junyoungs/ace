@@ -1,5 +1,11 @@
 <?php declare(strict_types=1);
 
+// --- Load Environment Variables ---
+// Create and load the .env file.
+require_once __DIR__.'/../core/Env.php';
+\CORE\Env::create(dirname(__DIR__));
+
+
 // --- Register The Composer Auto Loader ---
 // This single line handles loading all classes and files defined in composer.json.
 // You must run `composer dump-autoload` for this to work.
