@@ -13,6 +13,30 @@ Our core philosophy is **Absolute Simplicity**. ACE strips away non-essential fe
 - **Explicit & Safe SQL**: Write clear, explicit SQL queries that are easy to debug and tune, all safely executed with prepared statements.
 - **High-Performance Ready**: Built to run on high-performance application servers like RoadRunner, with support for PSR-7 standards.
 
+## Advanced Features (Optional)
+
+ACE also provides powerful features for building scalable, real-time applications. These are optional and can be used when needed.
+
+- **High-Performance Caching**: A Redis-based cache layer to dramatically speed up your application.
+  ```php
+  $cache = new \CORE\Cache();
+  $cache->set('user:1', $user, 3600);
+  $user = $cache->get('user:1');
+  ```
+
+- **Real-time Events (Pub/Sub)**: Broadcast events to other parts of your system (like a WebSocket server) using Redis Pub/Sub.
+  ```php
+  \CORE\Event::publish('user.registered', ['email' => $userEmail]);
+  ```
+
+- **Distributed Locking**: Prevent race conditions in a distributed environment, ensuring that critical operations are performed by only one process at a time.
+  ```php
+  $lock = new \CORE\LockProvider();
+  $lock->withLock('process-payment:order:123', function () {
+      // Safely process the payment.
+  }, 10); // Lock for 10 seconds
+  ```
+
 ## Quick Start: Your First API in 90 Seconds
 
 ### 1. Initial Setup
