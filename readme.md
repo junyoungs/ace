@@ -25,20 +25,9 @@ Edit the new migration file in `database/migrations/` to add columns like `title
 ```
 
 ### 3. Implement Your Logic
-Open `app/Services/PostService.php` and `app/Http/Controllers/PostController.php`. The controller methods already call the service methods. You only need to fill in the business logic in the service.
-
-**Controller:** `app/Http/Controllers/PostController.php`
+Open `app/Services/PostService.php`. The controller is already wired up to call the service. You only need to fill in the business logic.
 ```php
-// This is auto-generated. You don't need to change it.
-public function getIndex(): array
-{
-    return $this->postService->getAllPosts();
-}
-```
-
-**Service:** `app/Services/PostService.php`
-```php
-// This is where you write your logic.
+// app/Services/PostService.php
 public function getAllPosts(): array
 {
     // You can add caching, complex logic, etc. here.
@@ -55,26 +44,30 @@ Open your browser and navigate to `/api/docs` to see your fully documented, func
 ## Advanced Usage
 
 ### Middleware
-Middleware can be assigned to groups in `app/Http/Kernel.php`. The `api` group is applied to all routes starting with `/api/`. You can create new groups for different subdomains (e.g., `admin`).
-
-**Kernel:** `app/Http/Kernel.php`
-```php
-protected array $middlewareGroups = [
-    'api' => [
-        \APP\Http\Middleware\AuthenticateApi::class,
-    ],
-    'admin' => [
-        // \APP\Http\Middleware\AuthenticateAdmin::class,
-    ],
-];
-```
-The router will automatically apply the middleware group that matches the subdomain of the request.
+Middleware can be assigned to groups in `app/Http/Kernel.php`. The router automatically applies the middleware group that matches the subdomain of the request (e.g., `api.domain.com` -> `api` group).
 
 ### Custom SQL
 For complex queries not covered by the built-in Model methods, you can always fall back to writing explicit, safe SQL.
 ```php
 Post::select("SELECT * FROM posts WHERE published_at < ? AND is_active = ?", [$now, true]);
 ```
+Every query automatically gets a comment with the file path and line number for easy debugging.
+
+## AI-Driven Development
+
+ACE's simplicity and strict conventions make it exceptionally well-suited for development with AI assistants. The AI can easily understand the framework's structure and generate high-quality, working code with simple prompts.
+
+### Example Prompt
+> "I'm using the ACE Framework. In `PostService`, create a new method `getFeaturedPosts` that returns all posts where the `is_featured` column is true."
+
+The AI will understand the framework's conventions and should be able to generate the following method for you, ready to go in your service class. You would then just need to add the corresponding `getFeaturedPosts` method in your controller.
+
+## The `ace` Console Tool
+For easier use, make the script executable once: `chmod +x ace.php`
+- `./ace make:api [Name]`
+- `./ace migrate`
+- `./ace docs:generate`
+- `./ace serve`
 
 ---
 *Built with simplicity by ED.*
