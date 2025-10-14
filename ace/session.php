@@ -1,6 +1,6 @@
 <?php
 
-namespace CORE;
+namespace ACE;
 
 use \SessionHandlerInterface;
 use \BOOT\Log;

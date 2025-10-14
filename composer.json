@@ -1,6 +1,6 @@
 {
-    "name": "ed/php-framework",
-    "description": "A custom PHP framework, modernized by ED.",
+    "name": "ed/ace-framework",
+    "description": "An absolutely simple PHP framework for building APIs.",
     "type": "project",
     "license": "LGPL-3.0-or-later",
     "authors": [
@@ -9,21 +9,17 @@
         }
     ],
     "require": {
-        "php": ">=8.0",
+        "php": ">=8.1",
         "laminas/laminas-diactoros": "^3.0",
         "spiral/roadrunner-http": "^3.0"
     },
     "autoload": {
         "psr-4": {
             "APP\\": "app/",
-            "APP\\Http\\Controllers\\": "app/Http/Controllers/",
-            "APP\\Models\\": "app/Models/",
-            "CORE\\": "core/",
-            "DATABASE\\": "database/"
+            "ACE\\": "ace/"
         },
         "files": [
-            "func/default.php",
-            "boot/boot.php"
+            "ace/default.php"
         ]
     }
 }

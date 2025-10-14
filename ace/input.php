@@ -1,4 +1,4 @@
-<?php namespace CORE;
+<?php namespace ACE;
 /**
  * Input
  * Pre-processes global input data for security

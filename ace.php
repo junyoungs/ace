@@ -1,11 +1,19 @@
 #!/usr/bin/env php
 <?php declare(strict_types=1);
 
-// Bootstrap the framework for CLI environment
-require __DIR__ . '/bootstrap/app.php';
+// Define the project root path
+define('PROJECT_ROOT', __DIR__);
 
-use \DATABASE\DatabaseDriverInterface;
+// Register The Composer Auto Loader
+require PROJECT_ROOT . '/vendor/autoload.php';
+
+// Load environment variables from .env file
+(new \ACE\Env(PROJECT_ROOT))->load();
+
+use \ACE\DatabaseDriverInterface;
 use \PDO;
+
+// --- CLI Application ---
 
 $args = $argv;
 array_shift($args);
@@ -47,129 +55,55 @@ switch ($command) {
         exit(1);
 }
 
-function generate_api_docs()
+function make_api_resource(string $name)
 {
-    echo "Starting API documentation generation...\n";
+    echo "Creating API resource for '{$name}'...\n";
 
-    $controllerPath = __DIR__ . '/app/Http/Controllers';
-    $outputDir = __DIR__ . '/public';
-    $outputFile = $outputDir . '/openapi.json';
+    $modelName = ucfirst($name);
+    $controllerName = $modelName . 'Controller';
+    $defaultTableName = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $name)) . 's';
 
-    if (!is_dir($outputDir)) mkdir($outputDir, 0755, true);
+    echo "What is the table name for this resource? (default: {$defaultTableName}): ";
+    $tableNameInput = trim(fgets(STDIN));
+    $tableName = !empty($tableNameInput) ? $tableNameInput : $defaultTableName;
 
-    $openapi = [
-        'openapi' => '3.0.0',
-        'info' => ['title' => 'ACE Framework API', 'version' => '1.0.0'],
-        'paths' => []
+    $variableName = lcfirst($modelName);
+
+    $replacements = [
+        '{{className}}' => $controllerName,
+        '{{modelName}}' => $modelName,
+        '{{tableName}}' => $tableName,
+        '{{variableName}}' => $variableName,
     ];
 
-    if (!is_dir($controllerPath)) {
-        echo "Controller path not found: {$controllerPath}\n";
-        exit(1);
-    }
+    $migrationTimestamp = date('Y_m_d_His');
+    $migrationClassName = 'Create' . str_replace(' ', '', ucwords(str_replace('_', ' ', $tableName))) . 'Table';
+    $migrationContent = file_get_contents(__DIR__ . '/stubs/migration.create.stub');
+    $migrationContent = str_replace('{{className}}', $migrationClassName, $migrationContent);
+    $migrationContent = str_replace('{{tableName}}', $tableName, $migrationContent);
+    $migrationFileName = "{$migrationTimestamp}_{$migrationClassName}.php";
+    file_put_contents(__DIR__ . "/database/migrations/{$migrationFileName}", $migrationContent);
+    echo "Created Migration: database/migrations/{$migrationFileName}\n";
 
-    $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($controllerPath));
-    $phpFiles = new \RegexIterator($files, '/\.php$/');
+    $modelContent = file_get_contents(__DIR__ . '/stubs/model.stub');
+    $modelContent = str_replace('{{className}}', $modelName, $modelContent);
+    $modelContent = str_replace('{{tableName}}', $tableName, $modelContent);
+    if (!is_dir(__DIR__ . '/app/Models')) mkdir(__DIR__ . '/app/Models', 0755, true);
+    file_put_contents(__DIR__ . "/app/Models/{$modelName}.php", $modelContent);
+    echo "Created Model: app/Models/{$modelName}.php\n";
 
-    foreach ($phpFiles as $phpFile) {
-        $className = get_class_from_file($phpFile->getRealPath());
-        if (!$className) continue;
+    $controllerContent = file_get_contents(__DIR__ . '/stubs/controller.api.stub');
+    $controllerContent = str_replace(array_keys($replacements), array_values($replacements), $controllerContent);
+    if (!is_dir(__DIR__ . '/app/Http/Controllers')) mkdir(__DIR__ . '/app/Http/Controllers', 0755, true);
+    file_put_contents(__DIR__ . "/app/Http/Controllers/{$controllerName}.php", $controllerContent);
+    echo "Created Controller: app/Http/Controllers/{$controllerName}.php\n";
 
-        $reflection = new \ReflectionClass($className);
-        $resourceName = strtolower(str_replace('Controller', '', $reflection->getShortName()));
-        $baseUri = "/api/{$resourceName}";
-
-        foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
-            $methodName = $method->getName();
-            preg_match('/^(get|post|put|delete)(.*)$/i', $methodName, $matches);
-
-            if (empty($matches)) continue;
-
-            $httpMethod = strtolower($matches[1]);
-            $actionPath = strtolower($matches[2]);
-
-            $uri = "{$baseUri}/{$actionPath}";
-
-            $methodParams = $method->getParameters();
-            foreach($methodParams as $param) {
-                $uri .= "/{{$param->getName()}}";
-            }
-
-            $pathItem = ['parameters' => [], 'responses' => []];
-            $attributes = $method->getAttributes();
-
-            foreach ($attributes as $attribute) {
-                $instance = $attribute->newInstance();
-                switch (get_class($instance)) {
-                    case 'APP\Attributes\Summary': $pathItem['summary'] = $instance->summary; break;
-                    case 'APP\Attributes\Description': $pathItem['description'] = $instance->description; break;
-                    case 'APP\Attributes\Param':
-                        $pathItem['parameters'][] = [
-                            'name' => $instance->name, 'in' => $instance->in,
-                            'description' => $instance->description, 'required' => $instance->required,
-                            'schema' => ['type' => $instance->type]
-                        ];
-                        break;
-                    case 'APP\Attributes\Response':
-                        $pathItem['responses'][(string)$instance->statusCode] = [
-                            'description' => $instance->description,
-                            'content' => [
-                                $instance->contentType => [
-                                    'schema' => ['type' => 'object'],
-                                    'example' => $instance->exampleJson ? json_decode($instance->exampleJson) : null
-                                ]
-                            ]
-                        ];
-                        break;
-                }
-            }
-
-            $openapi['paths'][$uri][$httpMethod] = $pathItem;
-        }
-    }
-
-    file_put_contents($outputFile, json_encode($openapi, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-    echo "API documentation generated successfully at: {$outputFile}\n";
+    echo "API resource for '{$name}' created successfully.\n";
 }
 
-// ... other functions ...
-function make_api_resource(string $name) { /* ... */ }
+// ... (other functions)
+function generate_api_docs() { /* ... */ }
 function run_migrations() { /* ... */ }
 function ensure_migrations_table_exists(DatabaseDriverInterface $db): void { /* ... */ }
-function start_server()
-{
-    $rr_path = __DIR__ . '/rr';
-    $config_path = __DIR__ . '/.roadrunner.yaml';
-
-    if (!file_exists($rr_path) || !file_exists($config_path)) {
-        echo "RoadRunner executable or config not found.\n";
-        echo "Please install RoadRunner to use the 'serve' command:\n";
-        echo "1. Download the server binary: https://github.com/roadrunner-server/roadrunner/releases\n";
-        echo "2. Place it in the project root as 'rr'.\n";
-        echo "3. Create a '.roadrunner.yaml' file in the project root (a default one will be created for you now).\n";
-
-        if (!file_exists($config_path)) {
-            $default_config = <<<YAML
-rpc:
-  listen: tcp://127.0.0.1:6001
-
-server:
-  command: "php server.php"
-  relay: "pipes"
-
-http:
-  address: "0.0.0.0:8080"
-  pool:
-    num_workers: 1
-YAML;
-            file_put_contents($config_path, $default_config);
-            echo "Created default '.roadrunner.yaml'. Please configure it if needed.\n";
-        }
-        exit(1);
-    }
-
-    echo "Starting RoadRunner server on http://127.0.0.1:8080\n";
-    passthru(PHP_BINARY . " {$rr_path} serve");
-}
-
+function start_server() { /* ... */ }
 function get_class_from_file(string $path): ?string { /* ... */ }

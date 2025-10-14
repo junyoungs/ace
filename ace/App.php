@@ -1,8 +1,8 @@
 <?php declare(strict_types=1);
 
-namespace APP;
+namespace ACE;
 
-use \Exception;
+use Exception;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Laminas\Diactoros\ServerRequestFactory;
@@ -15,7 +15,7 @@ use Laminas\HttpHandlerRunner\Emitter\SapiEmitter;
 class App
 {
     /**
-     * Entry point for traditional CGI environments (like Apache/Nginx + PHP-FPM).
+     * Entry point for traditional CGI environments.
      */
 	public static function run(): void
 	{
@@ -26,11 +26,10 @@ class App
 
     /**
      * Handles a PSR-7 request and returns a PSR-7 response.
-     * This is the core logic for both traditional and high-performance servers.
      */
     public static function handle(ServerRequestInterface $request): ResponseInterface
     {
-        $container = app();
+        $container = Core::getInstance();
         $container->flushRequestState();
         $container->singleton('Request', fn() => $request);
 
@@ -44,15 +43,7 @@ class App
 
             $responsePayload = null;
             if (!empty($controllerClass)) {
-                if (!class_exists($controllerClass) || !method_exists($controllerClass, $method)) {
-                    throw new Exception("Endpoint not found: {$controllerClass}::{$method}", 404);
-                }
-
-                $controller = new $controllerClass(
-                    $router->getFile(), $controllerClass, $method,
-                    $router, $container->get('Input'), $container->get('Security'),
-                    $container->get('Session'), $container->get('Crypt')
-                );
+                $controller = $container->get($controllerClass);
                 $responsePayload = call_user_func_array([$controller, $method], $params);
             }
             return self::createResponse($responsePayload, $request->getMethod());

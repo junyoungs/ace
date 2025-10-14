@@ -1,8 +1,5 @@
 <?php
-namespace DATABASE\MYSQL;
-
-use \BOOT\Log;
-use \DATABASE\DatabaseDriverInterface;
+namespace ACE;
 
 class MysqlConnector implements DatabaseDriverInterface
 {
