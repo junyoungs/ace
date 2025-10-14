@@ -2,7 +2,6 @@
 
 namespace APP\Http\Controllers;
 
-use APP\Attributes\Route;
 use APP\Attributes\Summary;
 use APP\Attributes\Param;
 use APP\Attributes\Response;
@@ -10,18 +9,16 @@ use APP\Models\{{modelName}};
 
 class {{className}} extends \APP\Control
 {
-    #[Route('/api/{{tableName}}', method: 'GET')]
     #[Summary('List all {{tableName}}')]
     #[Response(200, 'A list of {{tableName}}.')]
-    public function index(): array
+    public function getIndex(): array
     {
         return {{modelName}}::get();
     }
 
-    #[Route('/api/{{tableName}}', method: 'POST')]
     #[Summary('Create a new {{variableName}}')]
     #[Response(201, 'The created {{variableName}}.')]
-    public function store(): array
+    public function postStore(): array
     {
         // $data = $this->input->json();
         // {{modelName}}::insert($data);
@@ -31,22 +28,20 @@ class {{className}} extends \APP\Control
         return $data;
     }
 
-    #[Route('/api/{{tableName}}/{id}', method: 'GET')]
     #[Summary('Get a single {{variableName}}')]
     #[Param('id', 'integer', 'path', true, 'The ID of the {{variableName}}.')]
     #[Response(200, 'The requested {{variableName}}.')]
     #[Response(404, '{{modelName}} not found.')]
-    public function show(int $id): ?array
+    public function getShow(int $id): ?array
     {
         return {{modelName}}::find($id);
     }
 
-    #[Route('/api/{{tableName}}/{id}', method: 'PUT')]
     #[Summary('Update a {{variableName}}')]
     #[Param('id', 'integer', 'path', true, 'The ID of the {{variableName}} to update.')]
     #[Response(200, '{{modelName}} updated successfully.')]
     #[Response(404, '{{modelName}} not found.')]
-    public function update(int $id): array
+    public function putUpdate(int $id): array
     {
         // $data = $this->input->json();
         $data = ['name' => 'Updated {{variableName}}'];
@@ -59,12 +54,11 @@ class {{className}} extends \APP\Control
         return ['message' => '{{modelName}} updated'];
     }
 
-    #[Route('/api/{{tableName}}/{id}', method: 'DELETE')]
     #[Summary('Delete a {{variableName}}')]
     #[Param('id', 'integer', 'path', true, 'The ID of the {{variableName}} to delete.')]
     #[Response(204, '{{modelName}} deleted successfully.')]
     #[Response(404, '{{modelName}} not found.')]
-    public function destroy(int $id): ?array
+    public function deleteDestroy(int $id): ?array
     {
         $affectedRows = {{modelName}}::where('id', '=', $id)->delete();
         if ($affectedRows === 0) {

@@ -6,7 +6,7 @@ Our core philosophy is **Absolute Simplicity**. ACE strips away non-essential fe
 
 ## Key Features
 
-- **Zero-Config Routing**: No route files. No route attributes. Just create your controller and methods following a simple convention, and your API endpoints are live.
+- **Zero-Config Routing**: No route files. No route attributes. Just name your controller methods with a `get`, `post`, `put`, or `delete` prefix, and your API endpoints are live instantly.
 - **Automatic Code Generation**: Create full CRUD API resources with a single command.
 - **Attribute-Based API Docs**: Define your API documentation with simple PHP 8 attributes right above your controller methods.
 - **Effortless JSON Responses**: Just return an array or object from your controller, and ACE will automatically convert it to a JSON response with the correct headers and status codes.
@@ -15,17 +15,20 @@ Our core philosophy is **Absolute Simplicity**. ACE strips away non-essential fe
 
 ## Automatic Routing Conventions
 
-You never have to define a route. ACE follows these simple conventions:
+You never have to define a route. ACE follows these simple conventions based on your controller and method names.
 
-| Controller Method | HTTP Verb | URI                         |
-|-------------------|-----------|-----------------------------|
-| `index()`         | `GET`     | `/api/products`             |
-| `show(int $id)`   | `GET`     | `/api/products/{id}`        |
-| `store()`         | `POST`    | `/api/products`             |
-| `update(int $id)` | `PUT`     | `/api/products/{id}`        |
-| `destroy(int $id)`| `DELETE`  | `/api/products/{id}`        |
+- **Controller:** `ProductController`
+- **Resource Name:** `product`
+- **Base URI:** `/api/product`
 
-*(Example shown for a `ProductController`)*
+| Controller Method          | HTTP Verb | URI                         |
+|----------------------------|-----------|-----------------------------|
+| `getIndex()`               | `GET`     | `/api/product/index`        |
+| `getShow(int $id)`         | `GET`     | `/api/product/show/{id}`    |
+| `postStore()`              | `POST`    | `/api/product/store`        |
+| `putUpdate(int $id)`       | `PUT`     | `/api/product/update/{id}`  |
+| `deleteDestroy(int $id)`   | `DELETE`  | `/api/product/destroy/{id}` |
+| `getCustomReport()`        | `GET`     | `/api/product/customreport` |
 
 ## Quick Start: Your First API in 90 Seconds
 
@@ -42,30 +45,19 @@ php ace.php make:api Post
 This command automatically creates:
 - A **migration file** to create the `posts` table.
 - A `Post` **model**.
-- A `PostController` with all conventional CRUD methods and API documentation attributes.
+- A `PostController` with all conventional CRUD methods (e.g., `getIndex`, `getShow`) and API documentation attributes.
 
 ### 2. Customize Your Migration
 
-Open the newly created migration file in `database/migrations/` and add the columns you need. For example, add `title` and `body` columns.
-
-```php
-// ... inside the up() method's CREATE TABLE SQL ...
-`title` VARCHAR(255) NOT NULL,
-`body` TEXT NOT NULL,
-// ...
-```
+Open the newly created migration file and add the columns you need, like `title` and `body`.
 
 ### 3. Run the Migration
-
-Execute the migration to create the table in your database.
 
 ```bash
 php ace.php migrate
 ```
 
 ### 4. Generate and View API Docs
-
-Now, generate the API documentation from your new controller.
 
 ```bash
 php ace.php docs:generate

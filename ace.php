@@ -72,21 +72,23 @@ function generate_api_docs()
 
         $reflection = new \ReflectionClass($className);
         $resourceName = strtolower(str_replace('Controller', '', $reflection->getShortName()));
-        $baseUri = "/api/{$resourceName}s";
+        $baseUri = "/api/{$resourceName}";
 
         foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
             $methodName = $method->getName();
-            $route = null;
+            preg_match('/^(get|post|put|delete)(.*)$/i', $methodName, $matches);
 
-            switch ($methodName) {
-                case 'index': $route = ['method' => 'GET', 'uri' => $baseUri]; break;
-                case 'show': $route = ['method' => 'GET', 'uri' => "{$baseUri}/{id}"]; break;
-                case 'store': $route = ['method' => 'POST', 'uri' => $baseUri]; break;
-                case 'update': $route = ['method' => 'PUT', 'uri' => "{$baseUri}/{id}"]; break;
-                case 'destroy': $route = ['method' => 'DELETE', 'uri' => "{$baseUri}/{id}"]; break;
+            if (empty($matches)) continue;
+
+            $httpMethod = strtolower($matches[1]);
+            $actionPath = strtolower($matches[2]);
+
+            $uri = "{$baseUri}/{$actionPath}";
+
+            $methodParams = $method->getParameters();
+            foreach($methodParams as $param) {
+                $uri .= "/{{$param->getName()}}";
             }
-
-            if (!$route) continue;
 
             $pathItem = ['parameters' => [], 'responses' => []];
             $attributes = $method->getAttributes();
@@ -117,8 +119,7 @@ function generate_api_docs()
                 }
             }
 
-            $httpMethod = strtolower($route['method']);
-            $openapi['paths'][$route['uri']][$httpMethod] = $pathItem;
+            $openapi['paths'][$uri][$httpMethod] = $pathItem;
         }
     }
 
