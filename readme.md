@@ -10,25 +10,8 @@ Our core philosophy is **Absolute Simplicity**. ACE strips away non-essential fe
 - **Automatic Code Generation**: Create full CRUD API resources with a single command.
 - **Attribute-Based API Docs**: Define your API documentation with simple PHP 8 attributes right above your controller methods.
 - **Effortless JSON Responses**: Just return an array or object from your controller, and ACE will automatically convert it to a JSON response with the correct headers and status codes.
-- **Fluent Query Builder**: A simple, powerful query builder that makes database interactions a breeze.
+- **Explicit & Safe SQL**: No complex query builders. Write clear, explicit SQL queries that are easy to debug and tune. All queries are safely executed using prepared statements to prevent SQL injection.
 - **Simple Migrations**: A straightforward CLI-based migration system to manage your database schema.
-
-## Automatic Routing Conventions
-
-You never have to define a route. ACE follows these simple conventions based on your controller and method names.
-
-- **Controller:** `ProductController`
-- **Resource Name:** `product`
-- **Base URI:** `/api/product`
-
-| Controller Method          | HTTP Verb | URI                         |
-|----------------------------|-----------|-----------------------------|
-| `getIndex()`               | `GET`     | `/api/product/index`        |
-| `getShow(int $id)`         | `GET`     | `/api/product/show/{id}`    |
-| `postStore()`              | `POST`    | `/api/product/store`        |
-| `putUpdate(int $id)`       | `PUT`     | `/api/product/update/{id}`  |
-| `deleteDestroy(int $id)`   | `DELETE`  | `/api/product/destroy/{id}` |
-| `getCustomReport()`        | `GET`     | `/api/product/customreport` |
 
 ## Quick Start: Your First API in 90 Seconds
 
@@ -36,49 +19,80 @@ Let's create a complete CRUD API for "posts".
 
 ### 1. Generate the API Resource
 
-Open your terminal and run the single `make:api` command:
-
 ```bash
-php ace.php make:api Post
+./ace make:api Post
+```
+This command creates the migration, model, and controller for your Post resource.
+
+### 2. Customize and Run Migration
+
+Edit the generated migration file in `database/migrations/` to add your columns, then run it.
+```bash
+./ace migrate
 ```
 
-This command automatically creates:
-- A **migration file** to create the `posts` table.
-- A `Post` **model**.
-- A `PostController` with all conventional CRUD methods (e.g., `getIndex`, `getShow`) and API documentation attributes.
+### 3. Review Your Controller
 
-### 2. Customize Your Migration
-
-Open the newly created migration file and add the columns you need, like `title` and `body`.
-
-### 3. Run the Migration
-
-```bash
-php ace.php migrate
-```
+Open `app/Http/Controllers/PostController.php`. You will see that all the database queries are written in plain, easy-to-read SQL.
 
 ### 4. Generate and View API Docs
 
 ```bash
-php ace.php docs:generate
+./ace docs:generate
+```
+Open your browser and navigate to `/api/docs` to see your fully documented API.
+
+## Database Usage: Explicit & Safe
+
+ACE encourages writing explicit SQL for clarity and performance. All database interactions are handled through two simple, static methods on your Model.
+
+### Fetching Data (`select`)
+
+To run a `SELECT` query and get results, use the `select` method.
+
+```php
+// Get all posts
+$posts = Post::select("SELECT * FROM posts");
+
+// Get a single post with a binding
+$post = Post::select("SELECT * FROM posts WHERE id = ?", [$id]);
 ```
 
-Open your browser and navigate to `/api/docs`. You will see a complete, interactive Swagger UI documentation for your new Posts API.
+### Modifying Data (`statement`)
 
-**That's it! You now have a fully documented, functional CRUD API without ever defining a single route.**
+To run `INSERT`, `UPDATE`, or `DELETE` queries, use the `statement` method. It returns the number of affected rows.
+
+```php
+// Create a new post
+Post::statement(
+    "INSERT INTO posts (title, body) VALUES (?, ?)",
+    ['New Post', 'Content here...']
+);
+
+// Update a post
+$affected = Post::statement(
+    "UPDATE posts SET title = ? WHERE id = ?",
+    ['Updated Title', $id]
+);
+```
+
+### Automatic SQL Commenting for Debugging
+
+**A key feature of ACE is that it automatically adds a comment to every SQL query, indicating the exact file and line number where the query was executed.** This makes debugging and performance tuning incredibly easy. When you check your database logs, you'll see queries like this:
+
+```sql
+SELECT * FROM posts WHERE id = ? /*/app/Http/Controllers/PostController.php:25*/
+```
+
+This tells you instantly which line of code generated the query, eliminating guesswork.
 
 ## The `ace` Console Tool
 
-All framework tasks are handled by the `ace` console tool.
+For easier use, make the script executable once: `chmod +x ace.php`
 
-- `php ace.php make:api [Name]`
-  - Scaffolds a new API resource. `[Name]` should be the singular, PascalCase name of your resource (e.g., `Product`, `BlogPost`).
-
-- `php ace.php migrate`
-  - Runs any pending database migrations.
-
-- `php ace.php docs:generate`
-  - Generates/updates the `openapi.json` file from your controller attributes.
+- `./ace make:api [Name]`
+- `./ace migrate`
+- `./ace docs:generate`
 
 ---
 *Built with simplicity by ED.*
