@@ -7,7 +7,7 @@ use APP\Attributes\Description;
 use APP\Attributes\Param;
 use APP\Attributes\Response;
 
-class ExampleController extends \APP\Control
+class ExampleController extends \ACE\Control
 {
     // This controller is now just an example and doesn't map to any
     // automatic routes because its methods don't follow the standard

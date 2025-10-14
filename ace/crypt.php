@@ -1,4 +1,4 @@
-<?php namespace CORE;
+<?php namespace ACE;
 /**
  * Security
  *

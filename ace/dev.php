@@ -1,5 +1,5 @@
 <?php
-namespace CORE;
+namespace ACE;
 
 /**
  * Development Classes

@@ -6,10 +6,15 @@
  * @author ED
  */
 
-// --- Load bootstrap and get the container ---
-// The app() function will handle loading the bootstrap file on its first call.
-require __DIR__.'/../func/default.php';
+// Define the project root path
+define('PROJECT_ROOT', dirname(__DIR__));
 
-// --- Run The Application ---
-// The App::run method will use the app() helper to get services.
-\APP\App::run();
+// Register The Composer Auto Loader
+// This handles loading all framework and application classes.
+require PROJECT_ROOT . '/vendor/autoload.php';
+
+// Load environment variables from .env file
+(new \ACE\Env(PROJECT_ROOT))->load();
+
+// Run The Application
+\ACE\App::run();

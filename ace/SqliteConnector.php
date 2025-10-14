@@ -1,9 +1,7 @@
 <?php
 
-namespace DATABASE\SQLITE;
+namespace ACE;
 
-use \BOOT\Log;
-use \DATABASE\DatabaseDriverInterface;
 use \PDO;
 
 class SqliteConnector implements DatabaseDriverInterface

@@ -1,6 +1,6 @@
 <?php
 
-namespace DATABASE;
+namespace ACE;
 
 interface DatabaseDriverInterface
 {

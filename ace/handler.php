@@ -1,4 +1,4 @@
-<?php namespace BOOT;
+<?php namespace ACE;
 /**
  * Exceptions Class
  *
