@@ -36,7 +36,10 @@ class ExampleController extends \APP\Control
         $newUser = ['id' => rand(1, 1000), 'name' => $name, 'email' => $email];
         // \APP\Models\User::insert($newUser);
 
-        // 2. Return a response
+        // 2. Publish an event
+        \CORE\Event::publish('user.created', $newUser);
+
+        // 3. Return a response
         return ['status' => 'success', 'user' => $newUser];
     }
 }
