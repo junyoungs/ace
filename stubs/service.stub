@@ -1,0 +1,35 @@
+<?php declare(strict_types=1);
+
+namespace APP\Services;
+
+use APP\Models\{{modelName}};
+
+class {{className}}
+{
+    public function getAll(): array
+    {
+        return {{modelName}}::getAll();
+    }
+
+    public function findById(int $id): ?array
+    {
+        return {{modelName}}::find($id);
+    }
+
+    public function create(array $data): int
+    {
+        // Add validation or other business logic here
+        return {{modelName}}::create($data);
+    }
+
+    public function update(int $id, array $data): int
+    {
+        // Add validation or other business logic here
+        return {{modelName}}::update($id, $data);
+    }
+
+    public function delete(int $id): int
+    {
+        return {{modelName}}::delete($id);
+    }
+}
