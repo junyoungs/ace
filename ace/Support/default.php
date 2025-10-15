@@ -1,5 +1,5 @@
 <?php
-namespace ACE;
+namespace ACE\Support;
 /**
  * Functions
  *
@@ -75,11 +75,11 @@ function env($key, $default = null)
  * Get the available container instance.
  *
  * @param  string|null  $abstract
- * @return mixed|\ACE\Kernel
+ * @return mixed|\ACE\Foundation\Core
  */
 function app($abstract = null)
 {
-    $container = \ACE\Kernel::getInstance();
+    $container = \ACE\Foundation\Core::getInstance();
 
     if (is_null($abstract)) {
         return $container;

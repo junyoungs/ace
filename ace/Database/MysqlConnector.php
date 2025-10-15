@@ -1,5 +1,5 @@
 <?php
-namespace ACE;
+namespace ACE\Database;
 
 class MysqlConnector implements \ACE\Database\DatabaseDriverInterface
 {

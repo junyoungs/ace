@@ -3,10 +3,10 @@
 
 define('BASE_PATH', __DIR__);
 require BASE_PATH . '/vendor/autoload.php';
-(new \ACE\Env(BASE_PATH))->load();
+(new \ACE\Support\Env(BASE_PATH))->load();
 require_once BASE_PATH . '/ace/Support/boot.php';
 
-use \ACE\DatabaseDriverInterface;
+use \ACE\Database\DatabaseDriverInterface;
 use \PDO;
 
 $args = $argv;
@@ -80,7 +80,20 @@ function make_api_resource(string $name)
     file_put_contents(__DIR__ . "/app/Models/{$modelName}.php", $modelContent);
     echo "Created Model: app/Models/{$modelName}.php\n";
 
+    // Create Service
+    $serviceName = $modelName . 'Service';
+    $serviceContent = str_replace(
+        ['{{className}}', '{{modelName}}'],
+        [$serviceName, $modelName],
+        file_get_contents(__DIR__ . '/stubs/service.stub')
+    );
+    if (!is_dir(__DIR__ . '/app/Services')) mkdir(__DIR__ . '/app/Services', 0755, true);
+    file_put_contents(__DIR__ . "/app/Services/{$serviceName}.php", $serviceContent);
+    echo "Created Service: app/Services/{$serviceName}.php\n";
+
     // Create Controller
+    $replacements['{{serviceName}}'] = $serviceName;
+    $replacements['{{serviceVariableName}}'] = lcfirst($serviceName);
     $controllerContent = str_replace(
         array_keys($replacements),
         array_values($replacements),

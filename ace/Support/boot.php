@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace ACE;
+namespace ACE\Support;
 
 /**
  * Determine the application environment.

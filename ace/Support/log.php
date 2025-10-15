@@ -1,4 +1,4 @@
-<?php namespace ACE;
+<?php namespace ACE\Support;
 /**
  * Log
  *

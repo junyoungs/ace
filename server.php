@@ -23,7 +23,7 @@ $psrFactory = new RoadRunner\Http\PSR7Worker(
 while ($request = $psrFactory->waitRequest()) {
     try {
         // Pass the request to the application kernel and get a response.
-        $response = \ACE\Kernel::getInstance()->handle($request);
+        $response = \ACE\Foundation\App::getInstance()->handle($request);
 
         // Send the response back to the server.
         $psrFactory->respond($response);

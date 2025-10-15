@@ -1,4 +1,4 @@
-<?php namespace ACE;
+<?php namespace ACE\Http;
 /**
  * Output
  * Responsible for sending final output to browser

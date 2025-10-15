@@ -1,0 +1,50 @@
+<?php declare(strict_types=1);
+
+namespace APP\Services;
+
+use APP\Models\{{modelName}};
+
+class {{className}}
+{
+    /**
+     * Get all resources.
+     */
+    public function getAll(): array
+    {
+        return {{modelName}}::getAll();
+    }
+
+    /**
+     * Get a single resource by its ID.
+     */
+    public function findById(int $id): ?array
+    {
+        return {{modelName}}::find($id);
+    }
+
+    /**
+     * Create a new resource.
+     */
+    public function create(array $data): int
+    {
+        // You can add validation, event dispatching, etc. here.
+        return {{modelName}}::create($data);
+    }
+
+    /**
+     * Update a resource by its ID.
+     */
+    public function update(int $id, array $data): int
+    {
+        // You can add validation, event dispatching, etc. here.
+        return {{modelName}}::update($id, $data);
+    }
+
+    /**
+     * Delete a resource by its ID.
+     */
+    public function delete(int $id): int
+    {
+        return {{modelName}}::delete($id);
+    }
+}

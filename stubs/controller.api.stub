@@ -1,28 +1,34 @@
 <?php declare(strict_types=1);
 
-namespace APP\Controllers;
+namespace APP\Http\Controllers;
 
 use APP\Attributes\Summary;
 use APP\Attributes\Param;
 use APP\Attributes\Response;
-use APP\Models\{{modelName}};
+use APP\Services\{{serviceName}};
 
-class {{className}} extends \ACE\Control
+class {{className}} extends \ACE\Http\Control
 {
+    public function __construct(
+        private {{serviceName}} ${{serviceVariableName}}
+    ) {}
+
     #[Summary('List all {{tableName}}')]
     #[Response(200, 'A list of {{tableName}}.')]
     public function getIndex(): array
     {
-        return {{modelName}}::getAll();
+        return $this->{{serviceVariableName}}->getAll();
     }
 
     #[Summary('Create a new {{variableName}}')]
     #[Response(201, 'The created {{variableName}}.')]
     public function postStore(): array
     {
-        // In a real app, you would get data from the request body.
+        // In a real app, you would get data from the request.
+        // $data = $this->request->getParsedBody();
         $data = ['name' => 'New {{variableName}}', 'description' => '...'];
-        {{modelName}}::create($data);
+
+        $this->{{serviceVariableName}}->create($data);
         return $data;
     }
 
@@ -32,7 +38,7 @@ class {{className}} extends \ACE\Control
     #[Response(404, '{{modelName}} not found.')]
     public function getShow(int $id): ?array
     {
-        $resource = {{modelName}}::find($id);
+        $resource = $this->{{serviceVariableName}}->findById($id);
         if (!$resource) {
             http_response_code(404);
             return ['error' => '{{modelName}} not found'];
@@ -46,9 +52,9 @@ class {{className}} extends \ACE\Control
     #[Response(404, '{{modelName}} not found.')]
     public function putUpdate(int $id): array
     {
-        // In a real app, you would get data from the request body.
+        // $data = $this->request->getParsedBody();
         $data = ['name' => 'Updated {{variableName}}'];
-        $affectedRows = {{modelName}}::update($id, $data);
+        $affectedRows = $this->{{serviceVariableName}}->update($id, $data);
 
         if ($affectedRows === 0) {
             http_response_code(404);
@@ -63,7 +69,7 @@ class {{className}} extends \ACE\Control
     #[Response(404, '{{modelName}} not found.')]
     public function deleteDestroy(int $id): ?array
     {
-        $affectedRows = {{modelName}}::delete($id);
+        $affectedRows = $this->{{serviceVariableName}}->delete($id);
         if ($affectedRows === 0) {
             http_response_code(404);
             return ['error' => '{{modelName}} not found'];
