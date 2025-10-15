@@ -1,5 +1,5 @@
 <?php
-namespace ACE\Support\Support;
+namespace ACE;
 /**
  * Functions
  *
@@ -69,6 +69,23 @@ function redkokoPriceFormat($price, $curr, $format = TRUE)
 function env($key, $default = null)
 {
     return $_ENV[$key] ?? $default;
+}
+
+/**
+ * Get the available container instance.
+ *
+ * @param  string|null  $abstract
+ * @return mixed|\ACE\Kernel
+ */
+function app($abstract = null)
+{
+    $container = \ACE\Kernel::getInstance();
+
+    if (is_null($abstract)) {
+        return $container;
+    }
+
+    return $container->get($abstract);
 }
 
 /* End of file func.php */

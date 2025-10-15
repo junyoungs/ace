@@ -3,10 +3,10 @@
 
 define('BASE_PATH', __DIR__);
 require BASE_PATH . '/vendor/autoload.php';
-(new \ACE\Support\Env(BASE_PATH))->load();
+(new \ACE\Env(BASE_PATH))->load();
 require_once BASE_PATH . '/ace/Support/boot.php';
 
-use \ACE\Database\DatabaseDriverInterface;
+use \ACE\DatabaseDriverInterface;
 use \PDO;
 
 $args = $argv;
@@ -44,7 +44,6 @@ function make_api_resource(string $name)
 
     $modelName = ucfirst($name);
     $controllerName = $modelName . 'Controller';
-    $serviceName = $modelName . 'Service';
     $defaultTableName = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $name)) . 's';
 
     echo "What is the table name for this resource? (default: {$defaultTableName}): ";
@@ -52,13 +51,10 @@ function make_api_resource(string $name)
     $tableName = !empty($tableNameInput) ? $tableNameInput : $defaultTableName;
 
     $variableName = lcfirst($modelName);
-    $serviceVariableName = lcfirst($serviceName);
 
     $replacements = [
         '{{className}}' => $controllerName,
         '{{modelName}}' => $modelName,
-        '{{serviceName}}' => $serviceName,
-        '{{serviceVariableName}}' => $serviceVariableName,
         '{{tableName}}' => $tableName,
         '{{variableName}}' => $variableName,
     ];
@@ -83,16 +79,6 @@ function make_api_resource(string $name)
     if (!is_dir(__DIR__ . '/app/Models')) mkdir(__DIR__ . '/app/Models', 0755, true);
     file_put_contents(__DIR__ . "/app/Models/{$modelName}.php", $modelContent);
     echo "Created Model: app/Models/{$modelName}.php\n";
-
-    // Create Service
-    $serviceContent = str_replace(
-        ['{{className}}', '{{modelName}}'],
-        [$serviceName, $modelName],
-        file_get_contents(__DIR__ . '/stubs/service.stub')
-    );
-    if (!is_dir(__DIR__ . '/app/Services')) mkdir(__DIR__ . '/app/Services', 0755, true);
-    file_put_contents(__DIR__ . "/app/Services/{$serviceName}.php", $serviceContent);
-    echo "Created Service: app/Services/{$serviceName}.php\n";
 
     // Create Controller
     $controllerContent = str_replace(

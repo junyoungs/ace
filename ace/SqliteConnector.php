@@ -1,6 +1,6 @@
 <?php
 
-namespace ACE\Database;
+namespace ACE;
 
 use \PDO;
 

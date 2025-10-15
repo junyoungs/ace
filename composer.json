@@ -16,13 +16,10 @@
     "autoload": {
         "psr-4": {
             "APP\\": "app/",
-            "ACE\\Foundation\\": "ace/Foundation/",
-            "ACE\\Http\\": "ace/Http/",
-            "ACE\\Database\\": "ace/Database/",
-            "ACE\\Support\\": "ace/Support/"
+            "ACE\\": "ace/"
         },
         "files": [
-            "ace/Support/default.php"
+            "ace/default.php"
         ]
     }
 }

@@ -1,14 +1,14 @@
 <?php declare(strict_types=1);
 
-namespace ACE\Http;
+namespace ACE;
 
 use Psr\Http\Message\ServerRequestInterface;
-use ACE\Database\DatabaseDriverInterface;
-use ACE\Router;
-use ACE\Input;
-use ACE\Security;
-use ACE\Session;
-use ACE\Crypt;
+
+
+
+
+
+
 
 abstract class Control
 {

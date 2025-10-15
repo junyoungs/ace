@@ -1,9 +1,9 @@
 <?php declare(strict_types=1);
 
-namespace ACE\Database;
+namespace ACE;
 
 use Exception;
-use ACE\Support\Log;
+
 
 class Db
 {

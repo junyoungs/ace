@@ -1,9 +1,9 @@
 <?php declare(strict_types=1);
 
-namespace ACE\Database\Database;
+namespace ACE;
 
 use PDO;
-use ACE\Core;
+
 
 abstract class Model
 {
@@ -28,7 +28,7 @@ abstract class Model
 
     protected static function select(string $sql, array $bindings = []): array
     {
-        $db = Core::getInstance()->get('Db')->driver(env('DB_CONNECTION', 'mysql'));
+        $db = app(Db::class)->driver(env('DB_CONNECTION', 'mysql'));
         $sql .= self::getSqlComment();
         $result = $db->prepareQuery($sql, $bindings);
 
@@ -42,7 +42,7 @@ abstract class Model
 
     protected static function statement(string $sql, array $bindings = []): int
     {
-        $db = Core::getInstance()->get('Db')->driver(env('DB_CONNECTION', 'mysql'), true);
+        $db = app(Db::class)->driver(env('DB_CONNECTION', 'mysql'), true);
         $sql .= self::getSqlComment();
         $db->prepareQuery($sql, $bindings);
         return $db->getAffectedRows();
