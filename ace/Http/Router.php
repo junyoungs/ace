@@ -1,20 +1,16 @@
 <?php declare(strict_types=1);
 
-namespace ACE;
+namespace ACE\Http;
 
 use Exception;
 use ReflectionClass;
 use ReflectionMethod;
-
+use ACE\Support\Log;
+use Psr\Http\Message\ServerRequestInterface;
 
 class Router
 {
-    public string $uri = '';
-    public string $file = '';
-    public string $control = '';
-    public string $method = '';
-    public array $params = [];
-    private static array $routeMap = [];
+    private array $routeMap = [];
 
     public function __construct()
     {
@@ -24,9 +20,9 @@ class Router
 
     private function buildRouteMap(): void
     {
-        if (!empty(self::$routeMap)) return;
+        if (!empty($this->routeMap)) return;
 
-        $controllerPath = PROJECT_ROOT . '/app/Http/Controllers';
+        $controllerPath = BASE_PATH . '/app/Http/Controllers';
         if (!is_dir($controllerPath)) return;
 
         $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($controllerPath));
@@ -46,47 +42,52 @@ class Router
 
                 $httpMethod = strtoupper($matches[1]);
                 $actionPath = strtolower($matches[2]);
-                $uri = "{$baseUri}/{$actionPath}";
+                $uri = rtrim("{$baseUri}/{$actionPath}", '/');
 
+                $params = [];
                 foreach($method->getParameters() as $param) {
                     $uri .= "/{{$param->getName()}}";
+                    $params[] = $param->getName();
                 }
 
-                self::$routeMap[$httpMethod][$uri] = [
-                    'action' => [$className, $method->getName()],
-                    'file'   => $phpFile->getRealPath(),
+                $uriPattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '([^/]+)', $uri);
+                $this->routeMap[$httpMethod][$uriPattern] = [
+                    'class'  => $className,
+                    'method' => $method->getName(),
+                    'params' => $params,
                 ];
             }
         }
     }
 
-    public function dispatch(string $requestUri, string $httpMethod): void
+    public function dispatch(ServerRequestInterface $request): array
     {
-        $routesForMethod = self::$routeMap[strtoupper($httpMethod)] ?? [];
+        $requestUri = $request->getUri()->getPath();
+        $httpMethod = $request->getMethod();
+        $host = $request->getUri()->getHost();
+        $subdomain = explode('.', $host)[0];
+
+        $appKernel = new \APP\Http\Kernel();
+        $middleware = array_merge(
+            $appKernel->middleware,
+            $appKernel->middlewareGroups[$subdomain] ?? $appKernel->middlewareGroups['*'] ?? []
+        );
+
+        $routesForMethod = $this->routeMap[$httpMethod] ?? [];
 
         foreach ($routesForMethod as $uriPattern => $routeData) {
-            $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '([^/]+)', $uriPattern);
-            if (preg_match('#^' . $pattern . '$#', $requestUri, $matches)) {
+            if (preg_match('#^' . $uriPattern . '$#', $requestUri, $matches)) {
                 array_shift($matches);
-                $this->uri = $requestUri;
-                $this->params = $matches;
-                $this->control = $routeData['action'][0];
-                $this->method = $routeData['action'][1];
-                $this->file = $routeData['file'];
-                return;
+                return [
+                    'class'      => $routeData['class'],
+                    'method'     => $routeData['method'],
+                    'params'     => $matches,
+                    'middleware' => $middleware,
+                ];
             }
         }
-        $this->handleNotFound($requestUri, $httpMethod);
-    }
-
-    private function handleNotFound(string $uri, string $method): void
-    {
-        throw new Exception("404 Not Found: No route matched for [{$method}] {$uri}", 404);
+        throw new Exception("404 Not Found: No route matched for [{$httpMethod}] {$requestUri}", 404);
     }
 
     private function getClassNameFromFile(string $path): ?string { /* ... */ }
-    public function getControl(): string { return $this->control; }
-    public function getMethod(): string { return $this->method; }
-    public function getFile(): string { return $this->file; }
-    public function getParams(): array { return $this->params; }
 }

@@ -2,7 +2,7 @@
 
 namespace APP\Models;
 
-class User extends \ACE\Model
+class User extends \ACE\Database\Model
 {
     /**
      * The table associated with the model.

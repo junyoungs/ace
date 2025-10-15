@@ -1,5 +1,5 @@
 <?php
-namespace ACE;
+namespace ACE\Support;
 
 /**
  * Development Classes

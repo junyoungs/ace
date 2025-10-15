@@ -1,13 +1,13 @@
 <?php declare(strict_types=1);
 
-namespace APP\Controllers;
+namespace APP\Http\Controllers;
 
 use APP\Attributes\Summary;
 use APP\Attributes\Description;
 use APP\Attributes\Param;
 use APP\Attributes\Response;
 
-class ExampleController extends \ACE\Control
+class ExampleController extends \ACE\Http\Control
 {
     // This controller is now just an example and doesn't map to any
     // automatic routes because its methods don't follow the standard

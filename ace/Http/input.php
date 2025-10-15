@@ -1,4 +1,4 @@
-<?php namespace ACE;
+<?php namespace ACE\Http;
 /**
  * Input
  * Pre-processes global input data for security

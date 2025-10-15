@@ -6,16 +6,16 @@
 
 The entire framework is designed to be intuitive and easy to understand.
 
-- **`/ace`**: Contains all the core framework files. You'll probably never need to touch this.
+- **`/ace`**: Contains all the core framework files, organized by function (`Foundation`, `Http`, `Database`, `Support`). You'll probably never need to touch this.
 - **`/app`**: This is where your application code lives.
-  - `Controllers/`: Handles incoming HTTP requests and returns responses.
+  - `Http/Controllers/`: Handles incoming HTTP requests and returns responses.
+  - `Http/Middleware/`: Contains HTTP middleware for tasks like authentication.
   - `Models/`: Represents your database tables and handles data interaction.
   - `Services/`: Contains your core business logic, keeping your controllers thin.
-  - `Middleware/`: Contains HTTP middleware for tasks like authentication.
 - **`/database/migrations`**: Where your database schema changes are stored.
 - **`/public`**: The web server's document root and your application's entry point (`index.php`).
 - **`ace.php`**: The command-line interface for the framework.
-- **`.env`**: All your application's configuration, like database credentials, is stored here.
+- **`.env`**: All your application's configuration is stored here.
 
 ## Key Features
 
@@ -25,6 +25,7 @@ The entire framework is designed to be intuitive and easy to understand.
 - **Service Layer Architecture**: A clean architecture that separates business logic (`Services`) from HTTP logic (`Controllers`).
 - **Middleware Support**: Protect your routes with middleware, perfect for handling authentication and other cross-cutting concerns.
 - **Effortless JSON Responses**: The framework automatically converts controller return values into JSON responses.
+- **High-Performance Ready**: Built to run on high-performance application servers like RoadRunner.
 
 ## Quick Start: Your First API in 90 Seconds
 
