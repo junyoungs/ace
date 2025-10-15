@@ -1,8 +1,9 @@
 <?php declare(strict_types=1);
 
-namespace ACE;
+namespace ACE\Database\Database;
 
 use PDO;
+use ACE\Core;
 
 abstract class Model
 {
@@ -46,8 +47,6 @@ abstract class Model
         $db->prepareQuery($sql, $bindings);
         return $db->getAffectedRows();
     }
-
-    // --- Public CRUD Methods ---
 
     public static function getAll(array $columns = ['*']): array
     {

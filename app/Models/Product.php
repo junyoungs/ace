@@ -2,9 +2,9 @@
 
 namespace APP\Models;
 
-class Product extends \ACE\Model
+class Product extends \ACE\Database\Model
 {
-    // By extending \ACE\Model, this class automatically gets access
+    // By extending \ACE\Database\Model, this class automatically gets access
     // to the Query Builder. The table name 'products' will be
     // inferred from the class name 'Product'.
 }

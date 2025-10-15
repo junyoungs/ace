@@ -1,10 +1,10 @@
 <?php
 
-namespace ACE;
+namespace ACE\Database;
 
 use \PDO;
 
-class SqliteConnector implements DatabaseDriverInterface
+class SqliteConnector implements \ACE\Database\DatabaseDriverInterface
 {
     /**
      * @var PDO|null
