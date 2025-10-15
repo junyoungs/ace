@@ -11,10 +11,10 @@ define('BASE_PATH', dirname(__DIR__));
 require BASE_PATH . '/vendor/autoload.php';
 
 // Load Environment Variables
-(new \ACE\Support\Env(BASE_PATH))->load();
+(new \ACE\Env(BASE_PATH))->load();
 
 // Bootstrap essential configurations
 require_once BASE_PATH . '/ace/Support/boot.php';
 
 // Run The Application
-\ACE\Foundation\App::run();
+\ACE\Kernel::run();

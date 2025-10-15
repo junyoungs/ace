@@ -1,4 +1,4 @@
-<?php namespace ACE\Support;
+<?php namespace ACE;
 /**
  * Exceptions Class
  *
