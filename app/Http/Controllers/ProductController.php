@@ -7,7 +7,7 @@ use APP\Attributes\Param;
 use APP\Attributes\Response;
 use APP\Models\Product;
 
-class ProductController extends \ACE\Control
+class ProductController extends \ACE\Http\Control
 {
     #[Summary('List all products')]
     #[Response(200, 'A list of products.', exampleJson: '[{"id": 1, "name": "Laptop", "price": "1200.50"}]')]

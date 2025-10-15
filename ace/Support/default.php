@@ -1,4 +1,5 @@
 <?php
+namespace ACE\Support\Support;
 /**
  * Functions
  *

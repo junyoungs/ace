@@ -1,20 +1,20 @@
 <?php declare(strict_types=1);
 
 /**
- * ACE Framework - A Custom PHP Framework
- *
+ * ACE Framework
  * @author ED
  */
 
-// Define the project root path
-define('PROJECT_ROOT', dirname(__DIR__));
+define('BASE_PATH', dirname(__DIR__));
 
-// Register The Composer Auto Loader
-// This handles loading all framework and application classes.
-require PROJECT_ROOT . '/vendor/autoload.php';
+// Composer Autoloader
+require BASE_PATH . '/vendor/autoload.php';
 
-// Load environment variables from .env file
-(new \ACE\Env(PROJECT_ROOT))->load();
+// Load Environment Variables
+(new \ACE\Support\Env(BASE_PATH))->load();
+
+// Bootstrap essential configurations
+require_once BASE_PATH . '/ace/Support/boot.php';
 
 // Run The Application
-\ACE\App::run();
+\ACE\Foundation\App::run();

@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace ACE;
+namespace ACE\Foundation;
 
 use Exception;
 use Psr\Http\Message\ServerRequestInterface;
@@ -9,14 +9,8 @@ use Laminas\Diactoros\ServerRequestFactory;
 use Laminas\Diactoros\Response as Psr7Response;
 use Laminas\HttpHandlerRunner\Emitter\SapiEmitter;
 
-/**
- * App Kernel
- */
 class App
 {
-    /**
-     * Entry point for traditional CGI environments.
-     */
 	public static function run(): void
 	{
         $request = ServerRequestFactory::fromGlobals();
@@ -24,9 +18,6 @@ class App
         (new SapiEmitter())->emit($response);
 	}
 
-    /**
-     * Handles a PSR-7 request and returns a PSR-7 response.
-     */
     public static function handle(ServerRequestInterface $request): ResponseInterface
     {
         $container = Core::getInstance();
@@ -43,7 +34,11 @@ class App
 
             $responsePayload = null;
             if (!empty($controllerClass)) {
-                $controller = $container->get($controllerClass);
+                $controller = new $controllerClass(
+                    $router->getFile(), $controllerClass, $method, $request,
+                    $router, $container->get('Input'), $container->get('Security'),
+                    $container->get('Session'), $container->get('Crypt')
+                );
                 $responsePayload = call_user_func_array([$controller, $method], $params);
             }
             return self::createResponse($responsePayload, $request->getMethod());
@@ -60,16 +55,11 @@ class App
 	private static function createResponse(mixed $payload, string $httpMethod): ResponseInterface
 	{
         $response = new Psr7Response();
-
-        if ($payload === null) {
-            return $response->withStatus(204);
-		}
-
+        if ($payload === null) return $response->withStatus(204);
 		if (is_array($payload) || is_object($payload)) {
 			$response->getBody()->write(json_encode($payload));
             $response = $response->withHeader('Content-Type', 'application/json');
-
-            $statusCode = $response->getStatusCode();
+			$statusCode = $response->getStatusCode();
 			if ($statusCode < 300) {
 				switch ($httpMethod) {
 					case 'POST': return $response->withStatus(201);
@@ -78,7 +68,6 @@ class App
 			}
             return $response;
 		}
-
         $response->getBody()->write((string)$payload);
         return $response;
 	}

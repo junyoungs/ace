@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace ACE;
+namespace ACE\Database;
 
 use \BOOT\Log;
 use \DATABASE\DatabaseDriverInterface;

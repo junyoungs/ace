@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace ACE;
+namespace ACE\Support;
 
 /**
  * Determine the application environment.
@@ -32,5 +32,8 @@ define('HOST', $host[0]);
 /**
  * Load Path Definitions and Handlers
  */
-\setRequire(WORKSPATH . DIRECTORY_SEPARATOR . 'boot' . DIRECTORY_SEPARATOR . 'path.php');
-\setRequire(WORKSPATH . DIRECTORY_SEPARATOR . 'boot' . DIRECTORY_SEPARATOR . 'handler.php');
+// Ensure default functions like setRequire are available first.
+require_once __DIR__ . '/default.php';
+
+\setRequire(__DIR__ . '/path.php');
+\setRequire(__DIR__ . '/handler.php');
