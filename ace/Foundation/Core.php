@@ -5,12 +5,6 @@ namespace ACE\Foundation;
 use Exception;
 use ACE\Database\Db;
 use ACE\Http\Router;
-use ACE\Support\Crypt;
-use ACE\Support\Security;
-use ACE\Support\Session;
-use ACE\Support\Input;
-use ACE\Support\Output;
-use ACE\Support\Dev;
 
 class Core
 {
@@ -38,15 +32,6 @@ class Core
         $this->singleton(self::class, fn() => $this);
         $this->singleton(Db::class, fn() => new Db());
         $this->singleton(Router::class, fn() => new Router());
-        $this->singleton(Security::class, fn() => new Security());
-        $this->singleton(Crypt::class, fn() => new Crypt());
-        $this->singleton(Input::class, fn() => new Input());
-        $this->singleton(Output::class, fn() => new Output());
-        $this->singleton(Session::class, fn() => new Session());
-
-        if (defined('MODE') && MODE === 'development') {
-			$this->singleton(Dev::class, fn() => new Dev());
-		}
 	}
 
     public function bind(string $id, callable $resolver): void { $this->bindings[$id] = $resolver; $this->isShared[$id] = false; }

@@ -5,7 +5,6 @@ namespace ACE\Http;
 use Exception;
 use ReflectionClass;
 use ReflectionMethod;
-use ACE\Support\Log;
 use Psr\Http\Message\ServerRequestInterface;
 
 class Router
@@ -15,7 +14,6 @@ class Router
     public function __construct()
     {
         $this->buildRouteMap();
-        Log::w('INFO', 'Router class initialized and routes registered.');
     }
 
     private function buildRouteMap(): void

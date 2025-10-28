@@ -21,7 +21,7 @@ class Kernel
      */
     protected array $middlewareGroups = [
         'api' => [
-            \APP\Http\Middleware\Authenticate::class,
+            \APP\Http\Middleware\AuthMiddleware::class,
         ],
 
         'admin' => [

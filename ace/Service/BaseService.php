@@ -2,8 +2,6 @@
 
 namespace ACE\Service;
 
-use ACE\Database\DB;
-
 /**
  * BaseService - Simple helper for custom business logic
  *
@@ -21,7 +19,9 @@ abstract class BaseService
      */
     protected function transaction(callable $callback)
     {
-        $db = DB::getInstance();
+        $dbManager = app(\ACE\Database\Db::class);
+        $db = $dbManager->driver(env('DB_CONNECTION', 'mysql'), true);
+
         try {
             $db->beginTransaction();
             $result = $callback();

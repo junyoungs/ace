@@ -65,4 +65,11 @@ interface DatabaseDriverInterface
      * Roll back the active database transaction.
      */
     public function rollBack();
+
+    /**
+     * Get the last inserted ID.
+     *
+     * @return int
+     */
+    public function getLastInsertId(): int;
 }

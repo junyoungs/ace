@@ -31,7 +31,6 @@ class SqliteConnector implements \ACE\Database\DatabaseDriverInterface
             try {
                 $this->conn = new PDO("sqlite:" . $config['path']);
                 $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                Log::w('INFO', 'Connected: Database > SQLite');
             } catch (\PDOException $e) {
                 throw new \Exception('SQLite Connection Error: ' . $e->getMessage());
             }
@@ -42,7 +41,6 @@ class SqliteConnector implements \ACE\Database\DatabaseDriverInterface
     {
         if ($this->conn) {
             $this->conn = null;
-            Log::w('INFO', 'Disconnected: Database > SQLite');
         }
     }
 
@@ -101,6 +99,14 @@ class SqliteConnector implements \ACE\Database\DatabaseDriverInterface
     {
         $this->checkConnected();
         $this->conn->rollBack();
+    }
+
+    public function getLastInsertId(): int
+    {
+        if ($this->conn) {
+            return (int) $this->conn->lastInsertId();
+        }
+        return 0;
     }
 
     private function checkConnected()

@@ -25,7 +25,6 @@ class MysqlConnector implements \ACE\Database\DatabaseDriverInterface
             }
 
             $this->query("set names utf8");
-            Log::w('INFO', 'Connected: Database > Mysql');
         }
 	}
 
@@ -37,7 +36,6 @@ class MysqlConnector implements \ACE\Database\DatabaseDriverInterface
 		if ($this->conn) {
 			$this->conn->close();
 			$this->conn = NULL;
-			Log::w('INFO', 'Disconnected: Database > Mysql');
 		}
 	}
 
@@ -129,5 +127,13 @@ class MysqlConnector implements \ACE\Database\DatabaseDriverInterface
     {
         $this->checkConnected();
         $this->conn->rollback();
+    }
+
+    public function getLastInsertId(): int
+    {
+        if ($this->conn) {
+            return $this->conn->insert_id;
+        }
+        return 0;
     }
 }
