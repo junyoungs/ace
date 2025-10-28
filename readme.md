@@ -1,254 +1,198 @@
-# ACE Framework
+# ACE
 
-**Schema-First API Framework for PHP**
+**Define database schema. Get complete REST API.**
 
-Write your database schema in DBML, generate a complete REST API automatically. Focus only on complex business logic.
+```
+database/schema.dbml → ./ace api → Ready-to-use API
+```
+
+Stop writing CRUD code. Write schema once, API is done.
 
 ---
 
-## Philosophy
+## Install
 
-Stop writing repetitive CRUD code. Define your data structure once, get a production-ready API instantly.
-
-```
-DBML Schema → Complete API (Models, Services, Controllers, Migrations)
-```
-
----
-
-## Quick Start
-
-### 1. Install & Configure
 ```bash
+git clone <this-repo>
 cp .env.example .env
 # Edit .env with your database credentials
 chmod +x ace.php
 ```
 
-### 2. Define Your Schema
+---
 
-Create or edit `database/schema.dbml`:
+## Usage
+
+### 1. Write Schema
+
+`database/schema.dbml`:
 
 ```dbml
 Table products {
   id int [pk, increment, note: 'auto:db']
-  name varchar(255) [not null, note: 'input:required']
-  slug varchar(255) [unique, note: 'auto:server:from=name']
-  price decimal(10,2) [note: 'input:required|min:0']
+  name varchar(255) [note: 'input:required']
+  price decimal(10,2) [note: 'input:required']
   category_id int [ref: > categories.id, note: 'input:required']
   created_at timestamp [note: 'auto:db']
 }
 
 Table categories {
   id int [pk, increment, note: 'auto:db']
-  name varchar(255) [not null, note: 'input:required']
+  name varchar(255) [note: 'input:required']
   created_at timestamp [note: 'auto:db']
 }
 ```
 
-### 3. Generate Everything
+### 2. Generate
 
 ```bash
 ./ace api
-```
-
-This creates:
-- ✅ Migrations with foreign keys
-- ✅ Models with relationships
-- ✅ Services with CRUD + business logic hooks
-- ✅ Controllers with REST endpoints
-- ✅ Automatic input validation structure
-
-### 4. Run & Test
-
-```bash
 ./ace migrate
 ./ace serve
 ```
 
-Your API is now live:
-- `GET    /api/products` - List all products
-- `POST   /api/products/store` - Create product
-- `GET    /api/products/show/1` - Get product #1
-- `PUT    /api/products/update/1` - Update product
-- `DELETE /api/products/destroy/1` - Delete product
-- `GET    /api/products/category/1` - Get product's category
-- `GET    /api/categories/products/1` - Get category's products
+### 3. Use
+
+Your API is live at `http://localhost:8080`:
+
+```bash
+# Products
+GET    /api/products              # List all
+POST   /api/products/store        # Create
+GET    /api/products/show/1       # Get one
+PUT    /api/products/update/1     # Update
+DELETE /api/products/destroy/1    # Delete
+
+# Relationships (auto-generated)
+GET    /api/products/category/1   # Get product's category
+GET    /api/categories/products/1 # Get category's products
+```
+
+**Done.**
 
 ---
 
-## DBML Metadata System
+## DBML Annotations
 
-Control how each field behaves with `note:` annotations:
+Control field behavior with `note:` attribute:
 
-### Input Fields (from API requests)
+### Input Fields (from API)
+
 ```dbml
-name varchar(255) [note: 'input:required']        # Required from user
-description text [note: 'input:optional']         # Optional from user
-price decimal(10,2) [note: 'input:required|min:0'] # With validation
+name varchar(255) [note: 'input:required']      # Required from user
+email varchar(255) [note: 'input:required|email'] # With validation
+description text [note: 'input:optional']        # Optional
 ```
 
-### Auto-Generated Fields (Database)
+### Auto-Generated (Database)
+
 ```dbml
-id int [pk, increment, note: 'auto:db']           # Auto-increment
-created_at timestamp [note: 'auto:db']            # DB timestamp
-updated_at timestamp [note: 'auto:db']            # Auto-update
+id int [pk, increment, note: 'auto:db']
+created_at timestamp [note: 'auto:db']
+updated_at timestamp [note: 'auto:db']
 ```
 
-### Auto-Generated Fields (Server)
+### Auto-Generated (Server)
+
 ```dbml
-slug varchar(255) [note: 'auto:server:from=name'] # From another field
-user_id int [note: 'auto:server:from=auth']       # From auth session
-order_number varchar(50) [note: 'auto:server:uuid'] # UUID generation
+slug varchar(255) [note: 'auto:server:from=name']      # Generate from name
+user_id int [note: 'auto:server:from=auth']            # From logged-in user
+order_number varchar(50) [note: 'auto:server:uuid']    # UUID
 deleted_at timestamp [note: 'auto:server:soft_delete'] # Soft delete
 ```
 
 ---
 
-## Automatic Relationships
+## Relationships
 
-Foreign keys automatically generate relationship methods:
+Define with `ref:`:
 
 ```dbml
-Table reviews {
+Table posts {
   id int [pk, increment, note: 'auto:db']
-  product_id int [ref: > products.id, note: 'input:required']
+  title varchar(255) [note: 'input:required']
   user_id int [ref: > users.id, note: 'auto:server:from=auth']
-  rating int [note: 'input:required|min:1|max:5']
+  category_id int [ref: > categories.id, note: 'input:required']
 }
-```
 
-Auto-generated methods:
-```php
-// In Review model
-$review->product($id);  // Get related product
-$review->user($id);     // Get related user
-
-// In Product model
-$product->reviews($id); // Get all reviews for product
-
-// In User model
-$user->reviews($id);    // Get all reviews by user
-```
-
-Auto-generated endpoints:
-- `GET /api/reviews/product/1` - Get review's product
-- `GET /api/reviews/user/1` - Get review's user
-- `GET /api/products/reviews/1` - Get product's reviews
-- `GET /api/users/reviews/1` - Get user's reviews
-
----
-
-## Project Structure
-
-```
-/ace                    # Framework core (don't touch)
-/app
-  /Http
-    /Controllers        # Auto-generated REST controllers
-    /Middleware         # Your custom middleware
-  /Models               # Auto-generated with relationships
-  /Services             # Auto-generated + your business logic
-/database
-  /migrations           # Auto-generated from DBML
-  schema.dbml           # Single source of truth
-/public
-  index.php             # Entry point
-ace.php                 # CLI tool
-.env                    # Configuration
-```
-
----
-
-## CLI Commands
-
-```bash
-./ace api [path]    # Generate complete API from DBML (default: database/schema.dbml)
-./ace migrate       # Run database migrations
-./ace serve         # Start development server
-```
-
----
-
-## Example: E-Commerce in 5 Minutes
-
-**1. Define schema** (`database/schema.dbml`):
-
-```dbml
-Table products {
+Table users {
   id int [pk, increment, note: 'auto:db']
   name varchar(255) [note: 'input:required']
-  price decimal(10,2) [note: 'input:required|min:0']
-  stock int [default: 0, note: 'input:optional']
-  category_id int [ref: > categories.id, note: 'input:required']
-  created_at timestamp [note: 'auto:db']
 }
 
 Table categories {
   id int [pk, increment, note: 'auto:db']
   name varchar(255) [note: 'input:required']
 }
-
-Table orders {
-  id int [pk, increment, note: 'auto:db']
-  user_id int [ref: > users.id, note: 'auto:server:from=auth']
-  total decimal(10,2) [note: 'auto:server:calculated']
-  status enum('pending','paid','shipped') [default: 'pending']
-  created_at timestamp [note: 'auto:db']
-}
-
-Table order_items {
-  id int [pk, increment, note: 'auto:db']
-  order_id int [ref: > orders.id, note: 'input:required']
-  product_id int [ref: > products.id, note: 'input:required']
-  quantity int [note: 'input:required|min:1']
-  price decimal(10,2) [note: 'auto:server:from=products.price']
-}
-
-Table users {
-  id int [pk, increment, note: 'auto:db']
-  email varchar(255) [unique, note: 'input:required|email']
-  password varchar(255) [note: 'input:required|min:8']
-  name varchar(255) [note: 'input:required']
-  created_at timestamp [note: 'auto:db']
-}
 ```
 
-**2. Generate**:
-```bash
-./ace api
-./ace migrate
-./ace serve
+**Auto-generated API endpoints:**
+
+```
+GET /api/posts/user/1       # Get post's user
+GET /api/posts/category/1   # Get post's category
+GET /api/users/posts/1      # Get user's posts
+GET /api/categories/posts/1 # Get category's posts
 ```
 
-**3. Done!** You now have:
-- Complete product catalog API
-- Category management
-- Order system with items
-- User management
-- All relationships working
-- **30+ REST endpoints ready to use**
+**Auto-generated model methods:**
+
+```php
+Post::find(1);           // Get post
+$post = new Post();
+$post->user(1);          // Get post's user
+$post->category(1);      // Get post's category
+
+$user = new User();
+$user->posts(1);         // Get user's posts
+```
 
 ---
 
-## Adding Custom Business Logic
+## What Gets Generated
 
-Generated services have hooks for your custom logic:
+From one DBML file, you get:
+
+**Migrations**
+- Tables with correct column types
+- Primary keys, foreign keys, indexes
+- Constraints and relationships
+
+**Models**
+- CRUD methods: `find()`, `getAll()`, `where()`, `create()`, `update()`, `delete()`
+- Relationship methods: `category()`, `posts()`, etc.
+- Automatic fillable fields (only input fields)
+
+**Services**
+- Basic CRUD operations
+- Input/auto field separation logic
+- Relationship loaders
+- Hooks for custom business logic
+
+**Controllers**
+- REST endpoints (list, show, store, update, destroy)
+- Relationship endpoints
+- Automatic JSON responses
+- Zero-config routing
+
+---
+
+## Add Custom Logic
+
+Generated files have sections for your code:
 
 ```php
-// app/Services/ProductService.php (auto-generated)
+// app/Services/ProductService.php
 
 class ProductService
 {
-    // ✅ Auto-generated CRUD (don't modify)
-    public function getAll(array $filters = []): array { /* ... */ }
-    public function findById(int $id): ?array { /* ... */ }
+    // Auto-generated CRUD (don't touch)
+    public function getAll(): array { /* ... */ }
     public function create(array $data): array { /* ... */ }
 
-    // 👇 Add your custom logic below
-
+    // Your custom logic below
     public function getFeatured(): array {
-        return Product::where('is_featured', 1);
+        return Product::where('featured', 1);
     }
 
     public function applyDiscount(int $id, float $percent): void {
@@ -259,46 +203,23 @@ class ProductService
 }
 ```
 
-Then add controller method:
+Add controller method:
+
 ```php
 // app/Http/Controllers/ProductController.php
 
 public function getFeatured(): array {
     return $this->productService->getFeatured();
 }
-
-public function postDiscount(int $id): array {
-    $data = $this->request->getParsedBody();
-    $this->productService->applyDiscount($id, $data['percent']);
-    return ['message' => 'Discount applied'];
-}
 ```
 
-Now you have:
-- `GET /api/products/featured` - Custom endpoint
-- `POST /api/products/discount/1` - Custom endpoint
+New endpoint: `GET /api/products/featured`
 
 ---
 
-## Model Methods (Auto-Available)
+## Routing
 
-All models inherit these methods:
-
-```php
-Product::getAll();                    // Get all records
-Product::find($id);                   // Find by ID
-Product::where('status', 'active');   // Find by column
-Product::create($data);               // Insert (respects fillable)
-Product::update($id, $data);          // Update (respects fillable)
-Product::delete($id);                 // Delete
-Product::query($sql, $bindings);      // Raw query
-```
-
----
-
-## Zero-Config Routing
-
-Controller method names automatically map to routes:
+Controller method names = routes:
 
 ```php
 class ProductController {
@@ -307,65 +228,140 @@ class ProductController {
     public function getShow($id) {}      // GET    /api/product/show/{id}
     public function putUpdate($id) {}    // PUT    /api/product/update/{id}
     public function deleteDestroy($id){} // DELETE /api/product/destroy/{id}
-
-    // Custom routes
     public function getFeatured() {}     // GET    /api/product/featured
     public function postSearch() {}      // POST   /api/product/search
 }
 ```
 
-Pattern: `{httpMethod}{ActionName}` → `{METHOD} /api/{resource}/{action}`
+Pattern: `{method}{Action}` → `{METHOD} /api/{resource}/{action}`
 
 ---
 
-## Middleware
+## Commands
 
-Protect routes by subdomain in `app/Http/Kernel.php`:
+```bash
+./ace api         # Generate API from database/schema.dbml
+./ace migrate     # Run migrations
+./ace serve       # Start server (localhost:8080)
+```
+
+---
+
+## Example: Blog in 2 Minutes
+
+**schema.dbml:**
+
+```dbml
+Table posts {
+  id int [pk, increment, note: 'auto:db']
+  title varchar(255) [note: 'input:required']
+  slug varchar(255) [unique, note: 'auto:server:from=title']
+  content text [note: 'input:required']
+  user_id int [ref: > users.id, note: 'auto:server:from=auth']
+  category_id int [ref: > categories.id, note: 'input:required']
+  views int [default: 0, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+}
+
+Table users {
+  id int [pk, increment, note: 'auto:db']
+  email varchar(255) [unique, note: 'input:required|email']
+  password varchar(255) [note: 'input:required|min:8']
+  name varchar(255) [note: 'input:required']
+  created_at timestamp [note: 'auto:db']
+}
+
+Table categories {
+  id int [pk, increment, note: 'auto:db']
+  name varchar(255) [unique, note: 'input:required']
+  slug varchar(255) [unique, note: 'auto:server:from=name']
+  created_at timestamp [note: 'auto:db']
+}
+
+Table comments {
+  id int [pk, increment, note: 'auto:db']
+  post_id int [ref: > posts.id, note: 'input:required']
+  user_id int [ref: > users.id, note: 'auto:server:from=auth']
+  content text [note: 'input:required']
+  created_at timestamp [note: 'auto:db']
+}
+```
+
+**Generate:**
+
+```bash
+./ace api
+./ace migrate
+./ace serve
+```
+
+**Result: 20+ endpoints, all relationships working.**
+
+```
+Posts:    GET/POST/PUT/DELETE /api/posts/...
+Users:    GET/POST/PUT/DELETE /api/users/...
+Category: GET/POST/PUT/DELETE /api/categories/...
+Comments: GET/POST/PUT/DELETE /api/comments/...
+
+Relationships:
+GET /api/posts/user/1
+GET /api/posts/category/1
+GET /api/posts/comments/1
+GET /api/users/posts/1
+GET /api/categories/posts/1
+... and more
+```
+
+---
+
+## Philosophy
+
+**90% of API work is repetitive:**
+- Define tables
+- Write CRUD
+- Handle relationships
+- Create endpoints
+- Filter input vs auto-generated fields
+
+**ACE automates all of it.**
+
+You focus on the 10% that matters:
+- Business logic
+- Custom features
+- Third-party integrations
+
+---
+
+## Model Methods
+
+Every model inherits:
 
 ```php
-public array $middlewareGroups = [
-    'api' => [
-        Authenticate::class,  // All api.* requests require auth
-    ],
-    'admin' => [
-        Authenticate::class,
-        AdminOnly::class,     // All admin.* requests require admin
-    ],
-];
+Product::getAll();                  // Get all records
+Product::find($id);                 // Find by ID
+Product::where('status', 'active'); // Find by column
+Product::create($data);             // Insert (auto-filters to fillable)
+Product::update($id, $data);        // Update
+Product::delete($id);               // Delete
+Product::query($sql, $bindings);    // Raw SQL
 ```
 
 ---
 
 ## When to Use ACE
 
-✅ **Perfect for:**
-- REST APIs with clear data models
-- CRUD-heavy applications
-- Rapid prototyping
-- Internal tools and dashboards
+**Perfect for:**
+- REST APIs
+- CRUD-heavy apps
+- Prototypes
+- Internal tools
 - Microservices
 
-❌ **Not ideal for:**
-- Server-side rendered websites
-- GraphQL APIs (use dedicated GraphQL frameworks)
-- Non-CRUD focused applications
-
----
-
-## Philosophy: 90/10 Rule
-
-ACE automates 90% of typical API work:
-- Database schema
-- CRUD operations
-- Relationships
-- REST endpoints
-- Input filtering
-
-You focus on the 10% that matters:
-- Complex business logic
-- Custom queries
-- Third-party integrations
-- Unique features
+**Not for:**
+- Server-rendered websites
+- GraphQL APIs
+- Non-database-driven apps
 
 ---
 
@@ -383,4 +379,6 @@ LGPL-3.0-or-later
 
 ---
 
-**Built with simplicity.** Stop writing boilerplate. Start shipping features.
+**ACE = Absolute Simplicity**
+
+One schema file. Three commands. Complete API.
