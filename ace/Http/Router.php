@@ -87,5 +87,29 @@ class Router
         throw new Exception("404 Not Found: No route matched for [{$httpMethod}] {$requestUri}", 404);
     }
 
-    private function getClassNameFromFile(string $path): ?string { /* ... */ }
+    private function getClassNameFromFile(string $path): ?string
+    {
+        $content = file_get_contents($path);
+        if (!$content) {
+            return null;
+        }
+
+        // Extract namespace
+        $namespace = null;
+        if (preg_match('/namespace\s+([^;]+);/', $content, $matches)) {
+            $namespace = trim($matches[1]);
+        }
+
+        // Extract class name
+        $className = null;
+        if (preg_match('/class\s+(\w+)/', $content, $matches)) {
+            $className = trim($matches[1]);
+        }
+
+        if ($namespace && $className) {
+            return "{$namespace}\\{$className}";
+        }
+
+        return $className;
+    }
 }

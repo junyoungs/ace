@@ -45,21 +45,6 @@ function makeDir($dir)
 }
 
 /**
- * [_L description]
- * @param  [type] $str [description]
- * @return [type]      [description]
- */
-function _L($str)
-{
-    return \APP\App::singleton('unit', 'language.page')->_L($str);
-}
-
-function redkokoPriceFormat($price, $curr, $format = TRUE)
-{
-    return \APP\App::singleton('unit', 'calculation.price')->redkokoFormat($price, $curr, $format);
-}
-
-/**
  * Gets the value of an environment variable.
  *
  * @param  string  $key

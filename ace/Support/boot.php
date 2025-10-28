@@ -30,10 +30,7 @@ $host = explode('.', strtolower($_SERVER['HTTP_HOST'] ?? 'localhost'));
 define('HOST', $host[0]);
 
 /**
- * Load Path Definitions and Handlers
+ * Load default functions and error handlers
  */
-// Ensure default functions like setRequire are available first.
 require_once __DIR__ . '/default.php';
-
-\setRequire(__DIR__ . '/path.php');
-\setRequire(__DIR__ . '/handler.php');
+require_once __DIR__ . '/handler.php';
