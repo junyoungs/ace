@@ -1,0 +1,91 @@
+// ACE Framework - Database Schema Definition
+// This file defines your entire database structure and API behavior
+
+Table products {
+  id int [pk, increment, note: 'auto:db']
+  name varchar(255) [not null, note: 'input:required']
+  slug varchar(255) [unique, note: 'auto:server:from=name']
+  description text [note: 'input:optional']
+  price decimal(10,2) [not null, note: 'input:required|min:0']
+  stock int [default: 0, note: 'input:optional|min:0']
+  category_id int [ref: > categories.id, note: 'input:required']
+  status enum('draft','published','archived') [default: 'draft', note: 'input:optional']
+  view_count int [default: 0, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+  deleted_at timestamp [null, note: 'auto:server:soft_delete']
+
+  indexes {
+    (category_id, status) [name: 'idx_category_status']
+    (created_at) [name: 'idx_created']
+  }
+}
+
+Table categories {
+  id int [pk, increment, note: 'auto:db']
+  name varchar(255) [not null, unique, note: 'input:required']
+  slug varchar(255) [unique, note: 'auto:server:from=name']
+  parent_id int [ref: > categories.id, null, note: 'input:optional']
+  sort_order int [default: 0, note: 'input:optional']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+}
+
+Table reviews {
+  id int [pk, increment, note: 'auto:db']
+  product_id int [ref: > products.id, note: 'input:required']
+  user_id int [ref: > users.id, note: 'auto:server:from=auth']
+  rating int [not null, note: 'input:required|min:1|max:5']
+  title varchar(255) [note: 'input:optional']
+  comment text [note: 'input:optional']
+  is_verified bool [default: false, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+
+  indexes {
+    (product_id, created_at) [name: 'idx_product_reviews']
+    (user_id) [name: 'idx_user_reviews']
+  }
+}
+
+Table users {
+  id int [pk, increment, note: 'auto:db']
+  email varchar(255) [not null, unique, note: 'input:required|email']
+  password varchar(255) [not null, note: 'input:required|min:8']
+  name varchar(255) [not null, note: 'input:required']
+  avatar_url varchar(500) [null, note: 'input:optional|url']
+  email_verified_at timestamp [null, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+  deleted_at timestamp [null, note: 'auto:server:soft_delete']
+}
+
+Table orders {
+  id int [pk, increment, note: 'auto:db']
+  user_id int [ref: > users.id, note: 'auto:server:from=auth']
+  order_number varchar(50) [unique, note: 'auto:server:uuid']
+  status enum('pending','paid','shipped','delivered','cancelled') [default: 'pending', note: 'input:optional']
+  total_amount decimal(10,2) [not null, note: 'auto:server:calculated']
+  shipping_address text [note: 'input:required']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+}
+
+Table order_items {
+  id int [pk, increment, note: 'auto:db']
+  order_id int [ref: > orders.id, note: 'input:required']
+  product_id int [ref: > products.id, note: 'input:required']
+  quantity int [not null, note: 'input:required|min:1']
+  price decimal(10,2) [not null, note: 'auto:server:from=products.price']
+  subtotal decimal(10,2) [not null, note: 'auto:server:calculated']
+  created_at timestamp [note: 'auto:db']
+}
+
+// DBML Relations automatically generate these API endpoints:
+// GET /api/products/{id}/reviews - Get all reviews for a product
+// GET /api/products/{id}/category - Get category of a product
+// GET /api/categories/{id}/products - Get all products in a category
+// GET /api/categories/{id}/children - Get child categories
+// GET /api/users/{id}/reviews - Get all reviews by a user
+// GET /api/users/{id}/orders - Get all orders by a user
+// GET /api/orders/{id}/items - Get all items in an order

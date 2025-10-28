@@ -6,109 +6,197 @@ require BASE_PATH . '/vendor/autoload.php';
 (new \ACE\Support\Env(BASE_PATH))->load();
 require_once BASE_PATH . '/ace/Support/boot.php';
 
-use \ACE\Database\DatabaseDriverInterface;
-use \PDO;
+use ACE\Database\DatabaseDriverInterface;
+use ACE\Database\DbmlParser;
+use ACE\Database\CodeGenerator;
 
 $args = $argv;
 array_shift($args);
 
 if (empty($args)) {
-    echo "ACE Console Tool\n\n";
-    echo "Usage:\n";
-    echo "  command [options] [arguments]\n\n";
-    echo "Available Commands:\n";
-    echo "  migrate           Run the database migrations\n";
-    echo "  docs:generate     Generate API documentation\n";
-    echo "  make:api [name]   Create a new API resource (Model, Controller, Service)\n";
-    echo "  serve             Start the high-performance server (RoadRunner)\n";
+    showHelp();
     exit(0);
 }
 
 $command = $args[0];
 
 switch ($command) {
-    case 'migrate': run_migrations(); break;
-    case 'docs:generate': generate_api_docs(); break;
-    case 'make:api':
-        $name = $args[1] ?? null;
-        if (!$name) { exit("Error: Missing resource name for make:api command.\n"); }
-        make_api_resource($name);
+    case 'api':
+        $dbmlPath = $args[1] ?? BASE_PATH . '/database/schema.dbml';
+        generateApi($dbmlPath);
         break;
-    case 'serve': start_server(); break;
-    default: exit("Error: Command '{$command}' not found.\n");
+    case 'migrate':
+        runMigrations();
+        break;
+    case 'serve':
+        startServer();
+        break;
+    default:
+        echo "Error: Unknown command '{$command}'\n\n";
+        showHelp();
+        exit(1);
 }
 
-function make_api_resource(string $name)
+function showHelp(): void
 {
-    echo "Creating API resource for '{$name}'...\n";
+    echo <<<HELP
+ACE Framework - Schema-First API Generator
 
-    $modelName = ucfirst($name);
-    $controllerName = $modelName . 'Controller';
-    $defaultTableName = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $name)) . 's';
+Usage:
+  ./ace <command> [options]
 
-    echo "What is the table name for this resource? (default: {$defaultTableName}): ";
-    $tableNameInput = trim(fgets(STDIN));
-    $tableName = !empty($tableNameInput) ? $tableNameInput : $defaultTableName;
+Commands:
+  api [path]       Generate complete API from DBML schema
+                   Default path: database/schema.dbml
 
-    $variableName = lcfirst($modelName);
+  migrate          Run database migrations
 
-    $replacements = [
-        '{{className}}' => $controllerName,
-        '{{modelName}}' => $modelName,
-        '{{tableName}}' => $tableName,
-        '{{variableName}}' => $variableName,
-    ];
+  serve            Start development server
 
-    // Create Migration
-    $migrationClassName = 'Create' . str_replace(' ', '', ucwords(str_replace('_', ' ', $tableName))) . 'Table';
-    $migrationContent = str_replace(
-        ['{{className}}', '{{tableName}}'],
-        [$migrationClassName, $tableName],
-        file_get_contents(__DIR__ . '/stubs/migration.create.stub')
-    );
-    $migrationFileName = date('Y_m_d_His') . "_{$migrationClassName}.php";
-    file_put_contents(__DIR__ . "/database/migrations/{$migrationFileName}", $migrationContent);
-    echo "Created Migration: database/migrations/{$migrationFileName}\n";
+Examples:
+  ./ace api                          Generate from default schema
+  ./ace api database/custom.dbml     Generate from custom schema
+  ./ace migrate                      Run all pending migrations
+  ./ace serve                        Start server on port 8080
 
-    // Create Model
-    $modelContent = str_replace(
-        ['{{className}}', '{{tableName}}'],
-        [$modelName, $tableName],
-        file_get_contents(__DIR__ . '/stubs/model.stub')
-    );
-    if (!is_dir(__DIR__ . '/app/Models')) mkdir(__DIR__ . '/app/Models', 0755, true);
-    file_put_contents(__DIR__ . "/app/Models/{$modelName}.php", $modelContent);
-    echo "Created Model: app/Models/{$modelName}.php\n";
-
-    // Create Service
-    $serviceName = $modelName . 'Service';
-    $serviceContent = str_replace(
-        ['{{className}}', '{{modelName}}'],
-        [$serviceName, $modelName],
-        file_get_contents(__DIR__ . '/stubs/service.stub')
-    );
-    if (!is_dir(__DIR__ . '/app/Services')) mkdir(__DIR__ . '/app/Services', 0755, true);
-    file_put_contents(__DIR__ . "/app/Services/{$serviceName}.php", $serviceContent);
-    echo "Created Service: app/Services/{$serviceName}.php\n";
-
-    // Create Controller
-    $replacements['{{serviceName}}'] = $serviceName;
-    $replacements['{{serviceVariableName}}'] = lcfirst($serviceName);
-    $controllerContent = str_replace(
-        array_keys($replacements),
-        array_values($replacements),
-        file_get_contents(__DIR__ . '/stubs/controller.api.stub')
-    );
-    if (!is_dir(__DIR__ . '/app/Http/Controllers')) mkdir(__DIR__ . '/app/Http/Controllers', 0755, true);
-    file_put_contents(__DIR__ . "/app/Http/Controllers/{$controllerName}.php", $controllerContent);
-    echo "Created Controller: app/Http/Controllers/{$controllerName}.php\n";
-
-    echo "API resource for '{$name}' created successfully.\n";
+HELP;
 }
 
-// ... other functions
-function generate_api_docs() { /* ... */ }
-function run_migrations() { /* ... */ }
-function ensure_migrations_table_exists(DatabaseDriverInterface $db): void { /* ... */ }
-function start_server() { /* ... */ }
-function get_class_from_file(string $path): ?string { /* ... */ }
+function generateApi(string $dbmlPath): void
+{
+    if (!file_exists($dbmlPath)) {
+        exit("Error: DBML file not found: {$dbmlPath}\n");
+    }
+
+    echo "========================================\n";
+    echo "ACE - API Generator\n";
+    echo "========================================\n\n";
+    echo "Reading: {$dbmlPath}\n\n";
+
+    $dbmlContent = file_get_contents($dbmlPath);
+    $parser = new DbmlParser();
+    $schema = $parser->parse($dbmlContent);
+
+    $tableCount = count($schema['tables']);
+    $relationCount = count($schema['relationships']);
+
+    echo "Found: {$tableCount} tables, {$relationCount} relationships\n\n";
+
+    foreach ($schema['tables'] as $tableName => $tableData) {
+        $columnCount = count($tableData['columns']);
+        echo "  • {$tableName} ({$columnCount} columns)\n";
+    }
+
+    echo "\nGenerating...\n\n";
+
+    $generator = new CodeGenerator();
+    $generator->generate($schema, $parser);
+
+    echo "\n========================================\n";
+    echo "✓ Complete!\n";
+    echo "========================================\n\n";
+    echo "Next steps:\n";
+    echo "  ./ace migrate    # Create database tables\n";
+    echo "  ./ace serve      # Start server\n\n";
+}
+
+function runMigrations(): void
+{
+    echo "Running migrations...\n\n";
+
+    $migrationPath = BASE_PATH . '/database/migrations';
+
+    if (!is_dir($migrationPath)) {
+        echo "No migrations directory found.\n";
+        return;
+    }
+
+    $db = getDbConnection();
+    ensureMigrationsTable($db);
+
+    $files = glob($migrationPath . '/*.php');
+    if (empty($files)) {
+        echo "No migration files found.\n";
+        return;
+    }
+
+    sort($files);
+    $executed = $db->query("SELECT migration FROM migrations")->fetchAll(\PDO::FETCH_COLUMN);
+
+    $ranCount = 0;
+    foreach ($files as $file) {
+        $filename = basename($file);
+
+        if (in_array($filename, $executed)) {
+            continue;
+        }
+
+        echo "Running: {$filename}... ";
+
+        require_once $file;
+        $className = getClassNameFromFile($file);
+
+        if (!$className || !class_exists($className)) {
+            echo "SKIP (no class found)\n";
+            continue;
+        }
+
+        $migration = new $className();
+        $migration->up($db);
+
+        $db->exec("INSERT INTO migrations (migration, batch) VALUES ('{$filename}', 1)");
+
+        echo "OK\n";
+        $ranCount++;
+    }
+
+    echo "\n";
+    if ($ranCount > 0) {
+        echo "✓ {$ranCount} migrations executed\n";
+    } else {
+        echo "✓ Nothing to migrate\n";
+    }
+}
+
+function ensureMigrationsTable(DatabaseDriverInterface $db): void
+{
+    $db->exec("CREATE TABLE IF NOT EXISTS migrations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        migration VARCHAR(255) NOT NULL,
+        batch INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+}
+
+function getDbConnection(): DatabaseDriverInterface
+{
+    $dbManager = app(\ACE\Database\Db::class);
+    return $dbManager->driver(env('DB_CONNECTION', 'mysql'));
+}
+
+function getClassNameFromFile(string $path): ?string
+{
+    $contents = file_get_contents($path);
+
+    if (preg_match('/class\s+(\w+)/', $contents, $matches)) {
+        return $matches[1];
+    }
+
+    return null;
+}
+
+function startServer(): void
+{
+    echo "Starting development server...\n";
+    echo "Server running at: http://localhost:8080\n";
+    echo "Press Ctrl+C to stop\n\n";
+
+    $publicPath = BASE_PATH . '/public';
+
+    if (!is_dir($publicPath)) {
+        exit("Error: Public directory not found\n");
+    }
+
+    chdir($publicPath);
+    passthru('php -S localhost:8080 2>&1');
+}
