@@ -17,10 +17,11 @@ if (empty($args)) {
     echo "Usage:\n";
     echo "  command [options] [arguments]\n\n";
     echo "Available Commands:\n";
-    echo "  migrate           Run the database migrations\n";
-    echo "  docs:generate     Generate API documentation\n";
-    echo "  make:api [name]   Create a new API resource (Model, Controller, Service)\n";
-    echo "  serve             Start the high-performance server (RoadRunner)\n";
+    echo "  migrate                  Run the database migrations\n";
+    echo "  docs:generate            Generate API documentation\n";
+    echo "  make:api [name]          Create a new API resource (Model, Controller, Service)\n";
+    echo "  make:api-from-dbml       Generate entire API from DBML schema file\n";
+    echo "  serve                    Start the high-performance server (RoadRunner)\n";
     exit(0);
 }
 
@@ -33,6 +34,10 @@ switch ($command) {
         $name = $args[1] ?? null;
         if (!$name) { exit("Error: Missing resource name for make:api command.\n"); }
         make_api_resource($name);
+        break;
+    case 'make:api-from-dbml':
+        $dbmlPath = $args[1] ?? BASE_PATH . '/database/schema.dbml';
+        make_api_from_dbml($dbmlPath);
         break;
     case 'serve': start_server(); break;
     default: exit("Error: Command '{$command}' not found.\n");
@@ -104,6 +109,47 @@ function make_api_resource(string $name)
     echo "Created Controller: app/Http/Controllers/{$controllerName}.php\n";
 
     echo "API resource for '{$name}' created successfully.\n";
+}
+
+function make_api_from_dbml(string $dbmlPath): void
+{
+    if (!file_exists($dbmlPath)) {
+        exit("Error: DBML file not found: {$dbmlPath}\n");
+    }
+
+    echo "========================================\n";
+    echo "ACE Framework - DBML API Generator\n";
+    echo "========================================\n\n";
+    echo "Reading DBML schema from: {$dbmlPath}\n\n";
+
+    $dbmlContent = file_get_contents($dbmlPath);
+
+    $parser = new \ACE\Database\DbmlParser();
+    $schema = $parser->parse($dbmlContent);
+
+    $tableCount = count($schema['tables']);
+    $relationCount = count($schema['relationships']);
+
+    echo "Found {$tableCount} tables and {$relationCount} relationships\n\n";
+
+    // Display tables
+    foreach ($schema['tables'] as $tableName => $tableData) {
+        $columnCount = count($tableData['columns']);
+        echo "  • {$tableName} ({$columnCount} columns)\n";
+    }
+
+    echo "\nGenerating API resources...\n\n";
+
+    $generator = new \ACE\Database\CodeGenerator();
+    $generator->generate($schema, $parser);
+
+    echo "\n========================================\n";
+    echo "✓ API Generation Complete!\n";
+    echo "========================================\n\n";
+    echo "Next steps:\n";
+    echo "  1. Run migrations: ./ace migrate\n";
+    echo "  2. Start server: ./ace serve\n";
+    echo "  3. View API docs: http://localhost:8080/api/docs\n\n";
 }
 
 // ... other functions
