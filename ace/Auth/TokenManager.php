@@ -98,12 +98,13 @@ class TokenManager
      */
     private function storeToken(int $userId, string $token, string $type, int $lifetime): void
     {
+        $now = date('Y-m-d H:i:s');
         $expiresAt = date('Y-m-d H:i:s', time() + $lifetime);
 
         $db = $this->getDb();
         $db->prepareQuery(
-            "INSERT INTO tokens (user_id, token, type, expires_at, created_at) VALUES (?, ?, ?, ?, NOW())",
-            [$userId, $token, $type, $expiresAt]
+            "INSERT INTO tokens (user_id, token, type, expires_at, created_at) VALUES (?, ?, ?, ?, ?)",
+            [$userId, $token, $type, $expiresAt, $now]
         );
     }
 
@@ -112,10 +113,11 @@ class TokenManager
      */
     private function tokenExistsInDb(string $token): bool
     {
+        $now = date('Y-m-d H:i:s');
         $db = $this->getDb();
         $result = $db->prepareQuery(
-            "SELECT id FROM tokens WHERE token = ? AND expires_at > NOW() LIMIT 1",
-            [$token]
+            "SELECT id FROM tokens WHERE token = ? AND expires_at > ? LIMIT 1",
+            [$token, $now]
         );
 
         if ($result instanceof \PDOStatement) {
@@ -151,8 +153,9 @@ class TokenManager
      */
     public function cleanExpiredTokens(): int
     {
+        $now = date('Y-m-d H:i:s');
         $db = $this->getDb();
-        $db->prepareQuery("DELETE FROM tokens WHERE expires_at < NOW()", []);
+        $db->prepareQuery("DELETE FROM tokens WHERE expires_at < ?", [$now]);
         return $db->getAffectedRows();
     }
 
@@ -174,6 +177,7 @@ class TokenManager
     private function getDb(): \ACE\Database\DatabaseDriverInterface
     {
         $dbManager = app(\ACE\Database\Db::class);
-        return $dbManager->driver(env('DB_CONNECTION', 'mysql'));
+        // Use master connection for write operations
+        return $dbManager->driver(env('DB_CONNECTION', 'mysql'), true);
     }
 }
