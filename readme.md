@@ -1,91 +1,249 @@
 # ACE
 
-**Define database schema. Get complete REST API.**
+**Define database schema. Get complete REST API with authentication.**
 
 ```
-database/schema.dbml → ./ace api → Ready-to-use API
+database/schema.dbml → ./ace api → API + Auth + 2FA
 ```
 
-Stop writing CRUD code. Write schema once, API is done.
+Authentication, user management, role-based access, and 2FA included by default.
 
 ---
 
-## Install
+## Features
+
+✅ **Authentication System** (ready to use)
+- User registration & login
+- Token-based auth (Bearer tokens)
+- Role management (member, admin, custom)
+- Two-factor authentication (2FA/TOTP)
+- Login logging
+- Password hashing
+
+✅ **Auto-Generated from DBML**
+- Complete CRUD APIs
+- Relationship endpoints
+- Input validation structure
+- Database migrations
+
+✅ **Zero Configuration**
+- Auto-routing (method names → URLs)
+- JSON responses
+- Middleware support
+
+---
+
+## Quick Start
+
+### 1. Install & Configure
 
 ```bash
 git clone <this-repo>
 cp .env.example .env
-# Edit .env with your database credentials
+# Edit .env: Set DB credentials and generate APP_KEY
 chmod +x ace.php
+```
+
+**Important**: Generate a random `APP_KEY` in `.env`:
+```bash
+openssl rand -base64 32
+```
+
+### 2. Generate & Run
+
+```bash
+./ace api      # Generate API from schema
+./ace migrate  # Create database tables
+./ace serve    # Start server
+```
+
+### 3. Test Authentication
+
+The default schema includes a complete auth system. Try it:
+
+**Register:**
+```bash
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "password123",
+    "name": "John Doe",
+    "nickname": "johndoe"
+  }'
+```
+
+**Login:**
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "password123"
+  }'
+```
+
+You'll get:
+```json
+{
+  "access_token": "eyJ1c2VyX2lkIjo...",
+  "refresh_token": "eyJ1c2VyX2lkIjo...",
+  "expires_in": 3600,
+  "token_type": "Bearer",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "user_type": "member"
+  }
+}
+```
+
+**Use token:**
+```bash
+curl http://localhost:8080/api/auth/me \
+  -H "Authorization: Bearer <your_access_token>"
 ```
 
 ---
 
-## Usage
+## Authentication Endpoints
 
-### 1. Write Schema
+All these are **ready to use** without writing any code:
 
-`database/schema.dbml`:
+```
+POST   /api/auth/register       Register new user
+POST   /api/auth/login          Login and get token
+POST   /api/auth/logout         Logout (revoke token)
+POST   /api/auth/refresh        Refresh access token
+GET    /api/auth/me             Get current user info
+
+# 2FA (Two-Factor Authentication)
+POST   /api/auth/enable2fa      Enable 2FA (returns QR code)
+POST   /api/auth/disable2fa     Disable 2FA
+POST   /api/auth/verify2fa      Verify 2FA code
+
+# User Management
+GET    /api/users               List users (admin only)
+GET    /api/users/show/{id}     Get user details
+PUT    /api/users/update/{id}   Update user
+DELETE /api/users/destroy/{id}  Delete user
+
+# Members & Admins
+GET    /api/members             List member profiles
+POST   /api/members/store       Create member profile
+GET    /api/admins              List admins (admin only)
+
+# Login History
+GET    /api/login-logs          Get login history
+```
+
+---
+
+## Enable 2FA (Two-Factor Authentication)
+
+**1. Enable 2FA:**
+```bash
+curl -X POST http://localhost:8080/api/auth/enable2fa \
+  -H "Authorization: Bearer <token>"
+```
+
+**Response:**
+```json
+{
+  "message": "2FA enabled successfully",
+  "qr_code_url": "https://api.qrserver.com/v1/create-qr-code/?...",
+  "backup_codes": ["12345678", "87654321", ...],
+  "instructions": "Scan the QR code with Google Authenticator"
+}
+```
+
+**2. Scan QR code** with Google Authenticator or Authy
+
+**3. Login with 2FA code:**
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "password123",
+    "two_factor_code": "123456"
+  }'
+```
+
+---
+
+## User Roles & Types
+
+The default schema supports multiple user types:
+
+**Schema structure:**
+```
+users (login info)
+  ├─ members (general users)
+  └─ admins (administrators)
+```
+
+**Register as admin:**
+```bash
+curl -X POST http://localhost:8080/api/auth/register \
+  -d '{
+    "email": "admin@example.com",
+    "password": "admin123",
+    "name": "Admin User",
+    "user_type": "admin",
+    "role": "super_admin"
+  }'
+```
+
+---
+
+## Default Schema
+
+The included `database/schema.dbml` provides:
+
+**Authentication Tables:**
+- `users` - Login credentials, user type
+- `members` - Member profiles (name, nickname, bio, etc.)
+- `admins` - Admin profiles (role, permissions)
+- `tokens` - Token storage (access & refresh)
+- `login_logs` - Login attempt history
+- `two_factor_auth` - 2FA secrets and backup codes
+
+**Example Tables** (can be removed):
+- `posts`, `categories`, `comments` - Blog/forum example
+
+---
+
+## Custom Schema
+
+You can modify `database/schema.dbml` or create your own:
 
 ```dbml
 Table products {
   id int [pk, increment, note: 'auto:db']
+  user_id int [ref: > users.id, note: 'auto:server:from=auth']
   name varchar(255) [note: 'input:required']
-  price decimal(10,2) [note: 'input:required']
-  category_id int [ref: > categories.id, note: 'input:required']
-  created_at timestamp [note: 'auto:db']
-}
-
-Table categories {
-  id int [pk, increment, note: 'auto:db']
-  name varchar(255) [note: 'input:required']
+  price decimal(10,2) [note: 'input:required|min:0']
   created_at timestamp [note: 'auto:db']
 }
 ```
 
-### 2. Generate
-
-```bash
-./ace api
-./ace migrate
-./ace serve
-```
-
-### 3. Use
-
-Your API is live at `http://localhost:8080`:
-
-```bash
-# Products
-GET    /api/products              # List all
-POST   /api/products/store        # Create
-GET    /api/products/show/1       # Get one
-PUT    /api/products/update/1     # Update
-DELETE /api/products/destroy/1    # Delete
-
-# Relationships (auto-generated)
-GET    /api/products/category/1   # Get product's category
-GET    /api/categories/products/1 # Get category's products
-```
-
-**Done.**
+Run `./ace api` to regenerate everything.
 
 ---
 
 ## DBML Annotations
 
-Control field behavior with `note:` attribute:
+Control how each field works:
 
 ### Input Fields (from API)
-
 ```dbml
-name varchar(255) [note: 'input:required']      # Required from user
+name varchar(255) [note: 'input:required']        # Required
 email varchar(255) [note: 'input:required|email'] # With validation
-description text [note: 'input:optional']        # Optional
+bio text [note: 'input:optional']                 # Optional
 ```
 
 ### Auto-Generated (Database)
-
 ```dbml
 id int [pk, increment, note: 'auto:db']
 created_at timestamp [note: 'auto:db']
@@ -93,118 +251,66 @@ updated_at timestamp [note: 'auto:db']
 ```
 
 ### Auto-Generated (Server)
-
 ```dbml
-slug varchar(255) [note: 'auto:server:from=name']      # Generate from name
-user_id int [note: 'auto:server:from=auth']            # From logged-in user
-order_number varchar(50) [note: 'auto:server:uuid']    # UUID
-deleted_at timestamp [note: 'auto:server:soft_delete'] # Soft delete
+slug varchar(255) [note: 'auto:server:from=name']       # From another field
+user_id int [note: 'auto:server:from=auth']             # From logged-in user
+token varchar(255) [note: 'auto:server']                # Server-generated
+deleted_at timestamp [note: 'auto:server:soft_delete']  # Soft delete
 ```
 
 ---
 
-## Relationships
+## Protecting Routes
 
-Define with `ref:`:
-
-```dbml
-Table posts {
-  id int [pk, increment, note: 'auto:db']
-  title varchar(255) [note: 'input:required']
-  user_id int [ref: > users.id, note: 'auto:server:from=auth']
-  category_id int [ref: > categories.id, note: 'input:required']
-}
-
-Table users {
-  id int [pk, increment, note: 'auto:db']
-  name varchar(255) [note: 'input:required']
-}
-
-Table categories {
-  id int [pk, increment, note: 'auto:db']
-  name varchar(255) [note: 'input:required']
-}
-```
-
-**Auto-generated API endpoints:**
-
-```
-GET /api/posts/user/1       # Get post's user
-GET /api/posts/category/1   # Get post's category
-GET /api/users/posts/1      # Get user's posts
-GET /api/categories/posts/1 # Get category's posts
-```
-
-**Auto-generated model methods:**
+Use `AuthMiddleware` in `app/Http/Kernel.php`:
 
 ```php
-Post::find(1);           // Get post
-$post = new Post();
-$post->user(1);          // Get post's user
-$post->category(1);      // Get post's category
+public array $middlewareGroups = [
+    'api' => [
+        \APP\Http\Middleware\AuthMiddleware::class,  // All /api/* requires auth
+    ],
+];
+```
 
-$user = new User();
-$user->posts(1);         // Get user's posts
+Or apply to specific subdomains:
+```php
+public array $middlewareGroups = [
+    'admin' => [
+        \APP\Http\Middleware\AuthMiddleware::class,  // admin.* requires auth
+    ],
+];
 ```
 
 ---
 
-## What Gets Generated
+## Adding Custom Logic
 
-From one DBML file, you get:
-
-**Migrations**
-- Tables with correct column types
-- Primary keys, foreign keys, indexes
-- Constraints and relationships
-
-**Models**
-- CRUD methods: `find()`, `getAll()`, `where()`, `create()`, `update()`, `delete()`
-- Relationship methods: `category()`, `posts()`, etc.
-- Automatic fillable fields (only input fields)
-
-**Services**
-- Basic CRUD operations
-- Input/auto field separation logic
-- Relationship loaders
-- Hooks for custom business logic
-
-**Controllers**
-- REST endpoints (list, show, store, update, destroy)
-- Relationship endpoints
-- Automatic JSON responses
-- Zero-config routing
-
----
-
-## Add Custom Logic
-
-Generated files have sections for your code:
+Generated services have hooks for your code:
 
 ```php
 // app/Services/ProductService.php
 
 class ProductService
 {
-    // Auto-generated CRUD (don't touch)
+    // Auto-generated CRUD (don't modify)
     public function getAll(): array { /* ... */ }
     public function create(array $data): array { /* ... */ }
 
     // Your custom logic below
     public function getFeatured(): array {
-        return Product::where('featured', 1);
+        return Product::where('is_featured', 1);
     }
 
     public function applyDiscount(int $id, float $percent): void {
         $product = Product::find($id);
-        $newPrice = $product['price'] * (1 - $percent / 100);
-        Product::update($id, ['price' => $newPrice]);
+        Product::update($id, [
+            'price' => $product['price'] * (1 - $percent / 100)
+        ]);
     }
 }
 ```
 
-Add controller method:
-
+Add controller endpoint:
 ```php
 // app/Http/Controllers/ProductController.php
 
@@ -219,7 +325,7 @@ New endpoint: `GET /api/products/featured`
 
 ## Routing
 
-Controller method names = routes:
+Controller method names automatically map to URLs:
 
 ```php
 class ProductController {
@@ -228,12 +334,12 @@ class ProductController {
     public function getShow($id) {}      // GET    /api/product/show/{id}
     public function putUpdate($id) {}    // PUT    /api/product/update/{id}
     public function deleteDestroy($id){} // DELETE /api/product/destroy/{id}
+
     public function getFeatured() {}     // GET    /api/product/featured
-    public function postSearch() {}      // POST   /api/product/search
 }
 ```
 
-Pattern: `{method}{Action}` → `{METHOD} /api/{resource}/{action}`
+Pattern: `{httpMethod}{Action}` → `{METHOD} /api/{resource}/{action}`
 
 ---
 
@@ -241,95 +347,9 @@ Pattern: `{method}{Action}` → `{METHOD} /api/{resource}/{action}`
 
 ```bash
 ./ace api         # Generate API from database/schema.dbml
-./ace migrate     # Run migrations
-./ace serve       # Start server (localhost:8080)
+./ace migrate     # Run database migrations
+./ace serve       # Start development server
 ```
-
----
-
-## Example: Blog in 2 Minutes
-
-**schema.dbml:**
-
-```dbml
-Table posts {
-  id int [pk, increment, note: 'auto:db']
-  title varchar(255) [note: 'input:required']
-  slug varchar(255) [unique, note: 'auto:server:from=title']
-  content text [note: 'input:required']
-  user_id int [ref: > users.id, note: 'auto:server:from=auth']
-  category_id int [ref: > categories.id, note: 'input:required']
-  views int [default: 0, note: 'auto:server']
-  created_at timestamp [note: 'auto:db']
-  updated_at timestamp [note: 'auto:db']
-}
-
-Table users {
-  id int [pk, increment, note: 'auto:db']
-  email varchar(255) [unique, note: 'input:required|email']
-  password varchar(255) [note: 'input:required|min:8']
-  name varchar(255) [note: 'input:required']
-  created_at timestamp [note: 'auto:db']
-}
-
-Table categories {
-  id int [pk, increment, note: 'auto:db']
-  name varchar(255) [unique, note: 'input:required']
-  slug varchar(255) [unique, note: 'auto:server:from=name']
-  created_at timestamp [note: 'auto:db']
-}
-
-Table comments {
-  id int [pk, increment, note: 'auto:db']
-  post_id int [ref: > posts.id, note: 'input:required']
-  user_id int [ref: > users.id, note: 'auto:server:from=auth']
-  content text [note: 'input:required']
-  created_at timestamp [note: 'auto:db']
-}
-```
-
-**Generate:**
-
-```bash
-./ace api
-./ace migrate
-./ace serve
-```
-
-**Result: 20+ endpoints, all relationships working.**
-
-```
-Posts:    GET/POST/PUT/DELETE /api/posts/...
-Users:    GET/POST/PUT/DELETE /api/users/...
-Category: GET/POST/PUT/DELETE /api/categories/...
-Comments: GET/POST/PUT/DELETE /api/comments/...
-
-Relationships:
-GET /api/posts/user/1
-GET /api/posts/category/1
-GET /api/posts/comments/1
-GET /api/users/posts/1
-GET /api/categories/posts/1
-... and more
-```
-
----
-
-## Philosophy
-
-**90% of API work is repetitive:**
-- Define tables
-- Write CRUD
-- Handle relationships
-- Create endpoints
-- Filter input vs auto-generated fields
-
-**ACE automates all of it.**
-
-You focus on the 10% that matters:
-- Business logic
-- Custom features
-- Third-party integrations
 
 ---
 
@@ -338,30 +358,43 @@ You focus on the 10% that matters:
 Every model inherits:
 
 ```php
-Product::getAll();                  // Get all records
-Product::find($id);                 // Find by ID
-Product::where('status', 'active'); // Find by column
-Product::create($data);             // Insert (auto-filters to fillable)
-Product::update($id, $data);        // Update
-Product::delete($id);               // Delete
-Product::query($sql, $bindings);    // Raw SQL
+User::getAll();                    // Get all
+User::find($id);                   // Find by ID
+User::where('status', 'active');   // Find by column
+User::create($data);               // Insert
+User::update($id, $data);          // Update
+User::delete($id);                 // Delete
+User::query($sql, $bindings);      // Raw SQL
 ```
+
+---
+
+## Security Best Practices
+
+1. **Generate strong APP_KEY**: `openssl rand -base64 32`
+2. **Use HTTPS** in production
+3. **Enable 2FA** for admin accounts
+4. **Set token expiration** appropriately
+5. **Monitor login_logs** table for suspicious activity
+6. **Hash passwords** (done automatically)
+7. **Validate input** (use DBML validation rules)
 
 ---
 
 ## When to Use ACE
 
 **Perfect for:**
-- REST APIs
-- CRUD-heavy apps
-- Prototypes
+- REST APIs with authentication
+- Admin panels & dashboards
+- Multi-tenant apps
+- Membership sites
 - Internal tools
-- Microservices
+- Prototypes & MVPs
 
 **Not for:**
 - Server-rendered websites
 - GraphQL APIs
-- Non-database-driven apps
+- Non-database apps
 
 ---
 
@@ -370,6 +403,7 @@ Product::query($sql, $bindings);    // Raw SQL
 - PHP 8.1+
 - MySQL or SQLite
 - Composer
+- OpenSSL (for key generation)
 
 ---
 
@@ -381,4 +415,4 @@ LGPL-3.0-or-later
 
 **ACE = Absolute Simplicity**
 
-One schema file. Three commands. Complete API.
+One schema file. Authentication included. Start building features, not boilerplate.

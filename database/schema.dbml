@@ -1,23 +1,120 @@
-// ACE Framework - Database Schema Definition
-// This file defines your entire database structure and API behavior
+// ACE Framework - Default Schema with Authentication System
+// This is a ready-to-use schema with user authentication, role management, and logging.
+// You can use this as-is or modify it for your needs.
 
-Table products {
+// ==============================================
+// Authentication & User Management (Default)
+// ==============================================
+
+Table users {
   id int [pk, increment, note: 'auto:db']
-  name varchar(255) [not null, note: 'input:required']
-  slug varchar(255) [unique, note: 'auto:server:from=name']
-  description text [note: 'input:optional']
-  price decimal(10,2) [not null, note: 'input:required|min:0']
-  stock int [default: 0, note: 'input:optional|min:0']
-  category_id int [ref: > categories.id, note: 'input:required']
-  status enum('draft','published','archived') [default: 'draft', note: 'input:optional']
-  view_count int [default: 0, note: 'auto:server']
+  email varchar(255) [not null, unique, note: 'input:required|email']
+  password varchar(255) [not null, note: 'input:required|min:8']
+  user_type enum('member', 'admin') [default: 'member', note: 'input:optional']
+  status enum('active', 'inactive', 'suspended') [default: 'active', note: 'auto:server']
+  email_verified_at timestamp [null, note: 'auto:server']
   created_at timestamp [note: 'auto:db']
   updated_at timestamp [note: 'auto:db']
-  deleted_at timestamp [null, note: 'auto:server:soft_delete']
 
   indexes {
-    (category_id, status) [name: 'idx_category_status']
+    (email) [name: 'idx_email']
+    (user_type, status) [name: 'idx_type_status']
+  }
+}
+
+Table members {
+  id int [pk, increment, note: 'auto:db']
+  user_id int [ref: - users.id, unique, note: 'auto:server:from=auth']
+  name varchar(255) [not null, note: 'input:required']
+  nickname varchar(255) [unique, note: 'input:required']
+  phone varchar(20) [null, note: 'input:optional']
+  avatar_url varchar(500) [null, note: 'input:optional|url']
+  bio text [null, note: 'input:optional']
+  birth_date date [null, note: 'input:optional']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+
+  indexes {
+    (nickname) [name: 'idx_nickname']
+  }
+}
+
+Table admins {
+  id int [pk, increment, note: 'auto:db']
+  user_id int [ref: - users.id, unique, note: 'auto:server:from=auth']
+  name varchar(255) [not null, note: 'input:required']
+  role varchar(50) [default: 'admin', note: 'input:optional']
+  permissions text [null, note: 'input:optional']
+  last_login_at timestamp [null, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+}
+
+Table tokens {
+  id int [pk, increment, note: 'auto:db']
+  user_id int [ref: > users.id, note: 'auto:server:from=auth']
+  token varchar(500) [not null, unique, note: 'auto:server']
+  type enum('access', 'refresh') [default: 'access', note: 'auto:server']
+  expires_at timestamp [not null, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+
+  indexes {
+    (token) [name: 'idx_token']
+    (user_id, type) [name: 'idx_user_token']
+    (expires_at) [name: 'idx_expires']
+  }
+}
+
+Table login_logs {
+  id int [pk, increment, note: 'auto:db']
+  user_id int [ref: > users.id, null, note: 'auto:server']
+  email varchar(255) [note: 'auto:server']
+  ip_address varchar(45) [note: 'auto:server']
+  user_agent text [note: 'auto:server']
+  success bool [default: false, note: 'auto:server']
+  failure_reason varchar(255) [null, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+
+  indexes {
+    (user_id, created_at) [name: 'idx_user_logs']
+    (ip_address) [name: 'idx_ip']
     (created_at) [name: 'idx_created']
+  }
+}
+
+Table two_factor_auth {
+  id int [pk, increment, note: 'auto:db']
+  user_id int [ref: - users.id, unique, note: 'auto:server:from=auth']
+  secret varchar(255) [not null, note: 'auto:server']
+  is_enabled bool [default: false, note: 'input:optional']
+  backup_codes text [null, note: 'auto:server']
+  last_used_at timestamp [null, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+}
+
+// ==============================================
+// Example: Blog/Board System
+// (You can remove this section if not needed)
+// ==============================================
+
+Table posts {
+  id int [pk, increment, note: 'auto:db']
+  user_id int [ref: > users.id, note: 'auto:server:from=auth']
+  title varchar(255) [not null, note: 'input:required']
+  slug varchar(255) [unique, note: 'auto:server:from=title']
+  content text [not null, note: 'input:required']
+  category_id int [ref: > categories.id, note: 'input:required']
+  status enum('draft', 'published', 'archived') [default: 'draft', note: 'input:optional']
+  views int [default: 0, note: 'auto:server']
+  published_at timestamp [null, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+
+  indexes {
+    (user_id, status) [name: 'idx_user_posts']
+    (category_id, status, published_at) [name: 'idx_category_posts']
+    (slug) [name: 'idx_slug']
   }
 }
 
@@ -25,67 +122,59 @@ Table categories {
   id int [pk, increment, note: 'auto:db']
   name varchar(255) [not null, unique, note: 'input:required']
   slug varchar(255) [unique, note: 'auto:server:from=name']
+  description text [null, note: 'input:optional']
   parent_id int [ref: > categories.id, null, note: 'input:optional']
   sort_order int [default: 0, note: 'input:optional']
   created_at timestamp [note: 'auto:db']
   updated_at timestamp [note: 'auto:db']
 }
 
-Table reviews {
+Table comments {
   id int [pk, increment, note: 'auto:db']
-  product_id int [ref: > products.id, note: 'input:required']
+  post_id int [ref: > posts.id, note: 'input:required']
   user_id int [ref: > users.id, note: 'auto:server:from=auth']
-  rating int [not null, note: 'input:required|min:1|max:5']
-  title varchar(255) [note: 'input:optional']
-  comment text [note: 'input:optional']
-  is_verified bool [default: false, note: 'auto:server']
+  content text [not null, note: 'input:required']
+  parent_id int [ref: > comments.id, null, note: 'input:optional']
+  status enum('pending', 'approved', 'rejected') [default: 'approved', note: 'auto:server']
   created_at timestamp [note: 'auto:db']
   updated_at timestamp [note: 'auto:db']
 
   indexes {
-    (product_id, created_at) [name: 'idx_product_reviews']
-    (user_id) [name: 'idx_user_reviews']
+    (post_id, status, created_at) [name: 'idx_post_comments']
+    (user_id) [name: 'idx_user_comments']
   }
 }
 
-Table users {
-  id int [pk, increment, note: 'auto:db']
-  email varchar(255) [not null, unique, note: 'input:required|email']
-  password varchar(255) [not null, note: 'input:required|min:8']
-  name varchar(255) [not null, note: 'input:required']
-  avatar_url varchar(500) [null, note: 'input:optional|url']
-  email_verified_at timestamp [null, note: 'auto:server']
-  created_at timestamp [note: 'auto:db']
-  updated_at timestamp [note: 'auto:db']
-  deleted_at timestamp [null, note: 'auto:server:soft_delete']
-}
-
-Table orders {
-  id int [pk, increment, note: 'auto:db']
-  user_id int [ref: > users.id, note: 'auto:server:from=auth']
-  order_number varchar(50) [unique, note: 'auto:server:uuid']
-  status enum('pending','paid','shipped','delivered','cancelled') [default: 'pending', note: 'input:optional']
-  total_amount decimal(10,2) [not null, note: 'auto:server:calculated']
-  shipping_address text [note: 'input:required']
-  created_at timestamp [note: 'auto:db']
-  updated_at timestamp [note: 'auto:db']
-}
-
-Table order_items {
-  id int [pk, increment, note: 'auto:db']
-  order_id int [ref: > orders.id, note: 'input:required']
-  product_id int [ref: > products.id, note: 'input:required']
-  quantity int [not null, note: 'input:required|min:1']
-  price decimal(10,2) [not null, note: 'auto:server:from=products.price']
-  subtotal decimal(10,2) [not null, note: 'auto:server:calculated']
-  created_at timestamp [note: 'auto:db']
-}
-
-// DBML Relations automatically generate these API endpoints:
-// GET /api/products/{id}/reviews - Get all reviews for a product
-// GET /api/products/{id}/category - Get category of a product
-// GET /api/categories/{id}/products - Get all products in a category
-// GET /api/categories/{id}/children - Get child categories
-// GET /api/users/{id}/reviews - Get all reviews by a user
-// GET /api/users/{id}/orders - Get all orders by a user
-// GET /api/orders/{id}/items - Get all items in an order
+// ==============================================
+// API Endpoints Auto-Generated:
+// ==============================================
+//
+// Authentication:
+// POST   /api/auth/register      - Register new user
+// POST   /api/auth/login         - Login and get token
+// POST   /api/auth/logout        - Logout (invalidate token)
+// POST   /api/auth/refresh       - Refresh access token
+// GET    /api/auth/me            - Get current user info
+//
+// Users:
+// GET    /api/users              - List users (admin only)
+// GET    /api/users/show/{id}    - Get user details
+// PUT    /api/users/update/{id}  - Update user
+// DELETE /api/users/destroy/{id} - Delete user (admin only)
+//
+// Members:
+// GET    /api/members            - List members
+// POST   /api/members/store      - Create member profile
+// GET    /api/members/show/{id}  - Get member profile
+// PUT    /api/members/update/{id} - Update member profile
+//
+// Admins:
+// GET    /api/admins             - List admins (admin only)
+// POST   /api/admins/store       - Create admin (super admin only)
+//
+// Login Logs:
+// GET    /api/login-logs         - Get login history (admin only)
+// GET    /api/login-logs/show/{userId} - Get user's login history
+//
+// Posts, Categories, Comments:
+// Full CRUD endpoints for each...
