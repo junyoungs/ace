@@ -49,7 +49,7 @@ Table categories {
 ### 3. Generate Everything
 
 ```bash
-./ace make:api-from-dbml
+./ace api
 ```
 
 This creates:
@@ -163,10 +163,9 @@ ace.php                 # CLI tool
 ## CLI Commands
 
 ```bash
-./ace make:api-from-dbml [path]  # Generate from DBML (default: database/schema.dbml)
-./ace migrate                     # Run migrations
-./ace serve                       # Start dev server
-./ace docs:generate               # Generate API docs
+./ace api [path]    # Generate complete API from DBML (default: database/schema.dbml)
+./ace migrate       # Run database migrations
+./ace serve         # Start development server
 ```
 
 ---
@@ -217,7 +216,7 @@ Table users {
 
 **2. Generate**:
 ```bash
-./ace make:api-from-dbml
+./ace api
 ./ace migrate
 ./ace serve
 ```
