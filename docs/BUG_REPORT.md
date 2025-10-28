@@ -27,7 +27,7 @@ define('_LOGPATH', LOGPATH.DIRECTORY_SEPARATOR.'dev');     // LOGPATH 정의 안
 
 ---
 
-### 2. **AuthService - MySQL 전용 NOW() 사용**
+### 2. **✅ FIXED - AuthService - MySQL 전용 NOW() 사용**
 **파일**: `ace/Auth/AuthService.php`
 **라인**: 44, 176-178, 197, 425-426, 433-434, 444-445
 
@@ -51,15 +51,19 @@ $this->db->prepareQuery(
 );
 ```
 
+**수정 완료**: Commit 561ffee - 9개 위치 모두 수정
+
 ---
 
-### 3. **TokenManager - MySQL 전용 NOW() 사용**
+### 3. **✅ FIXED - TokenManager - MySQL 전용 NOW() 사용**
 **파일**: `ace/Auth/TokenManager.php`
-**라인**: 여러 곳 (읽지 못한 부분에 있을 가능성)
+**라인**: 105, 117, 155
 
 **문제**: NOW() 함수 사용
 
 **해결책**: `date('Y-m-d H:i:s')` 사용
+
+**수정 완료**: Commit 561ffee - 3개 위치 모두 수정
 
 ---
 
@@ -85,7 +89,7 @@ list($name, $value) = explode('=', $line, 2);
 
 ## 🟡 Warning (수정 권장)
 
-### 5. **Model.php - master 연결 미사용**
+### 5. **✅ FIXED - Model.php - master 연결 미사용**
 **파일**: `ace/Database/Model.php`
 **라인**: 108
 
@@ -106,6 +110,11 @@ public static function create(array $data): int
 ```php
 $db = $dbManager->driver(env('DB_CONNECTION', 'mysql'), true); // master=true
 ```
+
+**추가 수정**: Commit 561ffee
+- AuthService 생성자에서도 master=true 사용
+- TokenManager getDb()에서도 master=true 사용
+- 모든 write 작업이 master DB로 라우팅됨
 
 ---
 
@@ -275,15 +284,16 @@ echo "Access Token: {$tokens['access_token']}\n";
 3. ✅ Router getClassNameFromFile() 구현
 
 ### Short-term (1-2일)
-4. ✅ AuthService NOW() 제거
-5. ✅ TokenManager NOW() 제거
-6. ✅ Model.php master 연결 수정
-7. ✅ MysqlConnector 에러 처리 추가
+4. ✅ AuthService NOW() 제거 (Commit 561ffee)
+5. ✅ TokenManager NOW() 제거 (Commit 561ffee)
+6. ✅ Model.php master 연결 수정 (Commit eeac6b4)
+7. ✅ MysqlConnector 에러 처리 추가 (Commit a4124ec)
+8. ✅ AuthService/TokenManager master 연결 추가 (Commit 561ffee)
 
 ### Medium-term (1주일)
-8. _L(), redkokoPriceFormat() 제거
-9. Model where() SQL Injection 방지
-10. AuthService 보안 강화
+9. _L(), redkokoPriceFormat() 제거 (Commit eeac6b4)
+10. Model where() SQL Injection 방지
+11. AuthService 보안 강화
 
 ---
 
