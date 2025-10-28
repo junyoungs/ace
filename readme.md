@@ -552,6 +552,94 @@ New endpoints:
 
 ---
 
+## AI Agent Development
+
+ACE is designed for AI-assisted development. AI agents can safely extend your application following clear patterns.
+
+### Key Principles
+
+✅ **AI agents can:**
+- Edit `database/schema.dbml` (define new tables)
+- Add custom logic in `app/Services/` (business logic)
+- Add custom endpoints in `app/Http/Controllers/` (API endpoints)
+- Modify `app/Models/` (add helper methods)
+
+⛔ **AI agents cannot:**
+- Modify `ace/` directory (framework core is read-only)
+- Change framework behavior
+- Alter auto-generated CRUD code
+
+### Simple DBML for AI
+
+Keep DBML simple with only 3 annotation types:
+
+```dbml
+// 1. User input
+name varchar(255) [note: 'input:required']
+
+// 2. Database auto-generated
+id int [pk, increment, note: 'auto:db']
+created_at timestamp [note: 'auto:db']
+
+// 3. Server auto-generated
+user_id int [note: 'auto:server:from=auth']
+slug varchar(255) [note: 'auto:server:from=title']
+```
+
+### Multi-Table Operations
+
+For complex workflows (10+ tables), use `BaseService`:
+
+```php
+// app/Services/OrderService.php
+class OrderService extends BaseService
+{
+    public function createFromCart(array $data): array
+    {
+        // Validate input
+        $this->validate($data, [
+            'user_id' => 'required',
+            'address' => 'required',
+        ]);
+
+        // Use transaction for multi-table operations
+        return $this->transaction(function() use ($data) {
+            // 1. Create order
+            $orderId = Order::create([...]);
+
+            // 2. Create order items
+            foreach ($data['items'] as $item) {
+                OrderItem::create([...]);
+            }
+
+            // 3. Update stock
+            $this->updateStock($data['items']);
+
+            return Order::find($orderId);
+        });
+    }
+}
+```
+
+### Code Quality Standards
+
+AI-generated code must be **simple and verifiable**:
+
+1. **Max 100 lines per function** (break into smaller helpers)
+2. **Max 3 nesting levels** (use early returns)
+3. **Clear comments** (explain business logic)
+
+### Complete Guide
+
+📖 **[AI Agent Guide](docs/AI_AGENT_GUIDE.md)** - Comprehensive rules, patterns, and examples for AI development
+
+📦 **Example Code:**
+- `examples/OrderService_example.php` - Multi-table operations
+- `examples/OrderController_example.php` - Custom endpoints
+- `examples/ecommerce-schema.dbml` - Complete schema
+
+---
+
 ## Routing Convention
 
 Controller method names automatically map to URLs:

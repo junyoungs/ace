@@ -5,24 +5,26 @@ namespace APP\Http\Middleware;
 use ACE\Http\MiddlewareInterface;
 use ACE\Auth\AuthService;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\ResponseInterface;
+use Laminas\Diactoros\Response\JsonResponse;
 
 /**
  * AuthMiddleware - Validates authentication tokens
  */
 class AuthMiddleware implements MiddlewareInterface
 {
-    public function handle(ServerRequestInterface $request): ServerRequestInterface
+    public function handle(ServerRequestInterface $request, callable $next): ResponseInterface
     {
         // Get token from Authorization header
         $authHeader = $request->getHeader('Authorization')[0] ?? '';
 
         if (empty($authHeader)) {
-            $this->unauthorized('Missing authorization token');
+            return new JsonResponse(['error' => 'Missing authorization token'], 401);
         }
 
         // Extract token (Bearer <token>)
         if (!preg_match('/Bearer\s+(.+)/i', $authHeader, $matches)) {
-            $this->unauthorized('Invalid authorization format');
+            return new JsonResponse(['error' => 'Invalid authorization format'], 401);
         }
 
         $token = $matches[1];
@@ -32,19 +34,12 @@ class AuthMiddleware implements MiddlewareInterface
         $user = $authService->getCurrentUser($token);
 
         if (!$user) {
-            $this->unauthorized('Invalid or expired token');
+            return new JsonResponse(['error' => 'Invalid or expired token'], 401);
         }
 
         // Store user in request attribute for later use
         $request = $request->withAttribute('auth_user', $user);
 
-        return $request;
-    }
-
-    private function unauthorized(string $message): void
-    {
-        http_response_code(401);
-        echo json_encode(['error' => $message]);
-        exit;
+        return $next($request);
     }
 }

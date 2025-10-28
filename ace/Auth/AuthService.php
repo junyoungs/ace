@@ -17,7 +17,8 @@ class AuthService
     {
         $this->tokenManager = new TokenManager();
         $dbManager = app(Db::class);
-        $this->db = $dbManager->driver(env('DB_CONNECTION', 'mysql'));
+        // Use master connection for write operations
+        $this->db = $dbManager->driver(env('DB_CONNECTION', 'mysql'), true);
     }
 
     /**
@@ -37,12 +38,13 @@ class AuthService
 
         // Hash password
         $hashedPassword = password_hash($data['password'], PASSWORD_BCRYPT);
+        $now = date('Y-m-d H:i:s');
 
         // Insert user
         $this->db->prepareQuery(
             "INSERT INTO users (email, password, user_type, status, created_at, updated_at)
-             VALUES (?, ?, ?, 'active', NOW(), NOW())",
-            [$data['email'], $hashedPassword, $data['user_type'] ?? 'member']
+             VALUES (?, ?, ?, 'active', ?, ?)",
+            [$data['email'], $hashedPassword, $data['user_type'] ?? 'member', $now, $now]
         );
 
         $userId = $this->db->getLastInsertId();
@@ -169,13 +171,14 @@ class AuthService
 
         // Generate backup codes
         $backupCodes = $this->generateBackupCodes();
+        $now = date('Y-m-d H:i:s');
 
         // Store in database
         $this->db->prepareQuery(
             "INSERT INTO two_factor_auth (user_id, secret, is_enabled, backup_codes, created_at, updated_at)
-             VALUES (?, ?, true, ?, NOW(), NOW())
-             ON DUPLICATE KEY UPDATE secret = ?, is_enabled = true, backup_codes = ?, updated_at = NOW()",
-            [$userId, $secret, json_encode($backupCodes), $secret, json_encode($backupCodes)]
+             VALUES (?, ?, true, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE secret = ?, is_enabled = true, backup_codes = ?, updated_at = ?",
+            [$userId, $secret, json_encode($backupCodes), $now, $now, $secret, json_encode($backupCodes), $now]
         );
 
         // Get user email for QR code
@@ -193,9 +196,10 @@ class AuthService
      */
     public function disable2FA(int $userId): void
     {
+        $now = date('Y-m-d H:i:s');
         $this->db->prepareQuery(
-            "UPDATE two_factor_auth SET is_enabled = false, updated_at = NOW() WHERE user_id = ?",
-            [$userId]
+            "UPDATE two_factor_auth SET is_enabled = false, updated_at = ? WHERE user_id = ?",
+            [$now, $userId]
         );
     }
 
@@ -245,9 +249,10 @@ class AuthService
         // Try TOTP first
         if ($this->verifyTOTP($row['secret'], $code)) {
             // Update last used
+            $now = date('Y-m-d H:i:s');
             $this->db->prepareQuery(
-                "UPDATE two_factor_auth SET last_used_at = NOW() WHERE user_id = ?",
-                [$userId]
+                "UPDATE two_factor_auth SET last_used_at = ? WHERE user_id = ?",
+                [$now, $userId]
             );
             return true;
         }
@@ -257,9 +262,10 @@ class AuthService
         if (in_array($code, $backupCodes)) {
             // Remove used backup code
             $backupCodes = array_diff($backupCodes, [$code]);
+            $now = date('Y-m-d H:i:s');
             $this->db->prepareQuery(
-                "UPDATE two_factor_auth SET backup_codes = ?, last_used_at = NOW() WHERE user_id = ?",
-                [json_encode(array_values($backupCodes)), $userId]
+                "UPDATE two_factor_auth SET backup_codes = ?, last_used_at = ? WHERE user_id = ?",
+                [json_encode(array_values($backupCodes)), $now, $userId]
             );
             return true;
         }
@@ -421,17 +427,19 @@ class AuthService
 
     private function createMemberProfile(int $userId, array $data): void
     {
+        $now = date('Y-m-d H:i:s');
         $this->db->prepareQuery(
-            "INSERT INTO members (user_id, name, nickname, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
-            [$userId, $data['name'] ?? '', $data['nickname'] ?? 'user' . $userId]
+            "INSERT INTO members (user_id, name, nickname, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+            [$userId, $data['name'] ?? '', $data['nickname'] ?? 'user' . $userId, $now, $now]
         );
     }
 
     private function createAdminProfile(int $userId, array $data): void
     {
+        $now = date('Y-m-d H:i:s');
         $this->db->prepareQuery(
-            "INSERT INTO admins (user_id, name, role, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
-            [$userId, $data['name'] ?? '', $data['role'] ?? 'admin']
+            "INSERT INTO admins (user_id, name, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+            [$userId, $data['name'] ?? '', $data['role'] ?? 'admin', $now, $now]
         );
     }
 
@@ -439,11 +447,12 @@ class AuthService
     {
         $ipAddress = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
         $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
+        $now = date('Y-m-d H:i:s');
 
         $this->db->prepareQuery(
             "INSERT INTO login_logs (user_id, email, ip_address, user_agent, success, failure_reason, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, NOW())",
-            [$userId, $email, $ipAddress, $userAgent, $success, $failureReason]
+             VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [$userId, $email, $ipAddress, $userAgent, $success, $failureReason, $now]
         );
     }
 }

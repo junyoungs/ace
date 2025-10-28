@@ -201,7 +201,7 @@ function handler(int $severity, string $message, string $filename, int $line): v
     }
 
 }
-set_error_handler("\BOOT\handler");
+set_error_handler("\\ACE\\Support\\handler");
 
 
 /**
@@ -229,7 +229,7 @@ function exception_handler($exception)
     exit(1);
 }
 
-set_exception_handler('\BOOT\exception_handler');
+set_exception_handler('\\ACE\\Support\\exception_handler');
 
 
 /* End of file handler.php */

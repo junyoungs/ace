@@ -301,6 +301,7 @@ PHP;
 namespace APP\Services;
 
 use APP\Models\\{$modelName};
+use ACE\Service\BaseService;
 
 /**
  * Service: {$serviceName}
@@ -308,7 +309,7 @@ use APP\Models\\{$modelName};
  * Auto-generated from DBML schema
  * @generated
  */
-class {$serviceName}
+class {$serviceName} extends BaseService
 {
     // ========================================
     // Auto-generated CRUD Methods
@@ -339,6 +340,30 @@ class {$serviceName}
     // ========================================
     // Custom Business Logic (add below)
     // ========================================
+
+    /**
+     * Example: Multi-table operation with transaction
+     *
+     * public function customOperation(array \$data): array
+     * {
+     *     return \$this->transaction(function() use (\$data) {
+     *         // Validate input
+     *         \$this->validate(\$data, [
+     *             'field1' => 'required',
+     *             'field2' => 'required'
+     *         ]);
+     *
+     *         // Create main record
+     *         \$mainId = {$modelName}::create(\$data);
+     *
+     *         // Create related records
+     *         // RelatedModel::create([...]);
+     *
+     *         // Return result
+     *         return {$modelName}::find(\$mainId);
+     *     });
+     * }
+     */
 }
 PHP;
 

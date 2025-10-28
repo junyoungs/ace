@@ -5,7 +5,6 @@ namespace ACE\Http;
 use Exception;
 use ReflectionClass;
 use ReflectionMethod;
-use ACE\Support\Log;
 use Psr\Http\Message\ServerRequestInterface;
 
 class Router
@@ -15,7 +14,6 @@ class Router
     public function __construct()
     {
         $this->buildRouteMap();
-        Log::w('INFO', 'Router class initialized and routes registered.');
     }
 
     private function buildRouteMap(): void
@@ -89,5 +87,29 @@ class Router
         throw new Exception("404 Not Found: No route matched for [{$httpMethod}] {$requestUri}", 404);
     }
 
-    private function getClassNameFromFile(string $path): ?string { /* ... */ }
+    private function getClassNameFromFile(string $path): ?string
+    {
+        $content = file_get_contents($path);
+        if (!$content) {
+            return null;
+        }
+
+        // Extract namespace
+        $namespace = null;
+        if (preg_match('/namespace\s+([^;]+);/', $content, $matches)) {
+            $namespace = trim($matches[1]);
+        }
+
+        // Extract class name
+        $className = null;
+        if (preg_match('/class\s+(\w+)/', $content, $matches)) {
+            $className = trim($matches[1]);
+        }
+
+        if ($namespace && $className) {
+            return "{$namespace}\\{$className}";
+        }
+
+        return $className;
+    }
 }

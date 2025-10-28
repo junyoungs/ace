@@ -37,6 +37,11 @@ class Env
                 continue;
             }
 
+            // Skip lines without '='
+            if (!str_contains($line, '=')) {
+                continue;
+            }
+
             list($name, $value) = explode('=', $line, 2);
             $name = trim($name);
             $value = trim($value);

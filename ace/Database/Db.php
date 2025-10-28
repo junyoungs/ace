@@ -11,7 +11,7 @@ class Db
 
 	public function __construct()
 	{
-		Log::w('INFO', 'Db class initialized.');
+		// Db class initialized
 	}
 
 	private function buildConfigFor(string $driver, bool $isMaster): array
@@ -62,7 +62,6 @@ class Db
         $instance->connect($connectionConfig);
 
         self::$instances[$driverKey] = $instance;
-        Log::w('INFO', "Created: Database Driver > {$driverKey}");
 
 		return $instance;
 	}

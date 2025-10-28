@@ -105,7 +105,7 @@ abstract class Model
 
         /** @var Db $dbManager */
         $dbManager = app(Db::class);
-        $db = $dbManager->driver(env('DB_CONNECTION', 'mysql'));
+        $db = $dbManager->driver(env('DB_CONNECTION', 'mysql'), true);
         return $db->getLastInsertId();
     }
 

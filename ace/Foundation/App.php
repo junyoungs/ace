@@ -18,6 +18,6 @@ class App
         $request = ServerRequestFactory::fromGlobals();
         $kernel = new Kernel();
         $response = $kernel->handle($request);
-        (new SpiEmitter())->emit($response);
+        (new SapiEmitter())->emit($response);
 	}
 }
