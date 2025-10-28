@@ -440,6 +440,13 @@ order_number varchar(50) [note: 'auto:server:uuid']     # UUID
 deleted_at timestamp [note: 'auto:server:soft_delete']  # Soft delete
 ```
 
+**📖 Complete DBML Guide:** For complex scenarios (5+ table joins, conditional logic, e-commerce examples), see **[docs/DBML_GUIDE.md](docs/DBML_GUIDE.md)**
+
+**📦 Ready-to-Use Examples:**
+- `examples/ecommerce-schema.dbml` - Full e-commerce system (orders, payments, shipping, reviews)
+- `examples/OrderService_example.php` - Complex business logic with transactions
+- `examples/OrderController_example.php` - Custom API endpoints
+
 ---
 
 ## Protecting Routes
