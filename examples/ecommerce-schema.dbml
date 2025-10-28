@@ -1,0 +1,507 @@
+//==============================================
+// 전자상거래 완전한 예제 스키마
+// 5개 이상 테이블 조인, 조건부 로직 포함
+//==============================================
+//
+// 사용법:
+// 1. 이 파일을 database/schema.dbml로 복사
+// 2. ./ace api 실행
+// 3. app/Services/에서 조건부 로직 구현
+// 4. ./ace migrate && ./ace serve
+//
+//==============================================
+
+// ==============================================
+// 1. 인증 & 사용자 관리
+// ==============================================
+
+Table users {
+  id int [pk, increment, note: 'auto:db']
+  email varchar(255) [not null, unique, note: 'input:required|email']
+  password varchar(255) [not null, note: 'input:required|min:8']
+  user_type enum('customer', 'admin') [default: 'customer', note: 'input:optional']
+  status enum('active', 'inactive', 'suspended') [default: 'active', note: 'auto:server']
+  email_verified_at timestamp [null, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+
+  indexes {
+    (email) [name: 'idx_email']
+    (user_type, status) [name: 'idx_type_status']
+  }
+}
+
+Table customers {
+  id int [pk, increment, note: 'auto:db']
+  user_id int [ref: - users.id, unique, note: 'auto:server:from=auth']
+  name varchar(255) [not null, note: 'input:required']
+  phone varchar(20) [not null, note: 'input:required|phone']
+  customer_level enum('bronze', 'silver', 'gold', 'platinum') [default: 'bronze', note: 'auto:server']
+  total_purchases decimal(12,2) [default: 0, note: 'auto:server']
+  points int [default: 0, note: 'auto:server']
+  birth_date date [null, note: 'input:optional']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+
+  indexes {
+    (customer_level, total_purchases) [name: 'idx_level_purchases']
+  }
+
+  Note: '''
+  customer_level 자동 계산:
+  - bronze: 0 ~ 200,000원
+  - silver: 200,000 ~ 500,000원
+  - gold: 500,000 ~ 1,000,000원
+  - platinum: 1,000,000원 이상
+  '''
+}
+
+Table admins {
+  id int [pk, increment, note: 'auto:db']
+  user_id int [ref: - users.id, unique, note: 'auto:server:from=auth']
+  name varchar(255) [not null, note: 'input:required']
+  role varchar(50) [default: 'admin', note: 'input:optional']
+  permissions text [null, note: 'input:optional']
+  last_login_at timestamp [null, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+}
+
+// ==============================================
+// 2. 상품 관리
+// ==============================================
+
+Table categories {
+  id int [pk, increment, note: 'auto:db']
+  name varchar(255) [not null, unique, note: 'input:required']
+  slug varchar(255) [unique, note: 'auto:server:from=name']
+  description text [null, note: 'input:optional']
+  parent_id int [ref: > categories.id, null, note: 'input:optional']
+  sort_order int [default: 0, note: 'input:optional']
+  is_active bool [default: true, note: 'input:optional']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+
+  indexes {
+    (parent_id, sort_order) [name: 'idx_hierarchy']
+    (slug) [name: 'idx_slug']
+  }
+
+  Note: '''
+  Self-referencing 관계로 계층형 카테고리 구조
+  예: 전자제품 > 스마트폰 > 아이폰
+  '''
+}
+
+Table brands {
+  id int [pk, increment, note: 'auto:db']
+  name varchar(255) [not null, unique, note: 'input:required']
+  slug varchar(255) [unique, note: 'auto:server:from=name']
+  logo_url varchar(500) [null, note: 'input:optional|url']
+  description text [null, note: 'input:optional']
+  created_at timestamp [note: 'auto:db']
+}
+
+Table products {
+  id int [pk, increment, note: 'auto:db']
+  category_id int [ref: > categories.id, note: 'input:required']
+  brand_id int [ref: > brands.id, null, note: 'input:optional']
+  name varchar(255) [not null, note: 'input:required']
+  slug varchar(255) [unique, note: 'auto:server:from=name']
+  description text [null, note: 'input:optional']
+  base_price decimal(10,2) [not null, note: 'input:required|min:0']
+  sale_price decimal(10,2) [null, note: 'input:optional|min:0']
+  cost_price decimal(10,2) [null, note: 'input:optional|min:0']
+  stock_quantity int [default: 0, note: 'input:required|min:0']
+  low_stock_threshold int [default: 10, note: 'input:optional']
+  sku varchar(100) [unique, note: 'input:required']
+  barcode varchar(100) [null, unique, note: 'input:optional']
+  weight decimal(8,2) [null, note: 'input:optional']
+  dimensions varchar(100) [null, note: 'input:optional']
+  status enum('active', 'inactive', 'out_of_stock', 'discontinued') [default: 'active', note: 'auto:server']
+  is_featured bool [default: false, note: 'input:optional']
+  view_count int [default: 0, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+
+  indexes {
+    (category_id, status) [name: 'idx_category']
+    (brand_id) [name: 'idx_brand']
+    (slug) [name: 'idx_slug']
+    (sku) [name: 'idx_sku']
+    (status, is_featured) [name: 'idx_status_featured']
+  }
+
+  Note: '''
+  status 자동 업데이트:
+  - stock_quantity = 0 → out_of_stock
+  - stock_quantity <= low_stock_threshold → 알림
+  '''
+}
+
+Table product_images {
+  id int [pk, increment, note: 'auto:db']
+  product_id int [ref: > products.id, note: 'input:required']
+  image_url varchar(500) [not null, note: 'input:required|url']
+  alt_text varchar(255) [null, note: 'input:optional']
+  sort_order int [default: 0, note: 'input:optional']
+  is_primary bool [default: false, note: 'input:optional']
+  created_at timestamp [note: 'auto:db']
+
+  indexes {
+    (product_id, sort_order) [name: 'idx_product_images']
+  }
+}
+
+Table product_options {
+  id int [pk, increment, note: 'auto:db']
+  product_id int [ref: > products.id, note: 'input:required']
+  option_name varchar(100) [not null, note: 'input:required']
+  option_value varchar(100) [not null, note: 'input:required']
+  price_adjustment decimal(10,2) [default: 0, note: 'input:optional']
+  stock_quantity int [default: 0, note: 'input:required|min:0']
+  sku varchar(100) [unique, null, note: 'input:optional']
+  is_available bool [default: true, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+
+  indexes {
+    (product_id, option_name, option_value) [name: 'idx_product_option']
+    (sku) [name: 'idx_sku']
+  }
+
+  Note: '''
+  상품 옵션 예시:
+  - 색상: 빨강, 파랑, 검정
+  - 사이즈: S, M, L, XL
+  - 저장용량: 128GB, 256GB, 512GB
+
+  price_adjustment: 기본 가격에서 추가/차감되는 금액
+  '''
+}
+
+// ==============================================
+// 3. 주문 관리 (복잡한 5개 이상 테이블 조인)
+// ==============================================
+
+Table orders {
+  id int [pk, increment, note: 'auto:db']
+  customer_id int [ref: > customers.id, note: 'auto:server:from=auth']
+  order_number varchar(50) [unique, not null, note: 'auto:server:uuid']
+  subtotal_amount decimal(12,2) [not null, note: 'auto:server']
+  discount_amount decimal(12,2) [default: 0, note: 'auto:server']
+  shipping_fee decimal(10,2) [default: 0, note: 'auto:server']
+  tax_amount decimal(10,2) [default: 0, note: 'auto:server']
+  total_amount decimal(12,2) [not null, note: 'auto:server']
+  coupon_code varchar(50) [null, note: 'input:optional']
+  status enum('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded') [default: 'pending', note: 'auto:server']
+  payment_status enum('unpaid', 'paid', 'failed', 'refunded') [default: 'unpaid', note: 'auto:server']
+  customer_notes text [null, note: 'input:optional']
+  admin_notes text [null, note: 'auto:server']
+  ip_address varchar(45) [null, note: 'auto:server']
+  user_agent text [null, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+
+  indexes {
+    (customer_id, status) [name: 'idx_customer_orders']
+    (order_number) [name: 'idx_order_number']
+    (status, payment_status) [name: 'idx_status']
+    (created_at) [name: 'idx_created']
+  }
+
+  Note: '''
+  주문 금액 계산:
+  - subtotal_amount: 상품 금액 합계
+  - discount_amount: 할인 금액 (쿠폰, 회원 등급)
+  - shipping_fee: 배송비 (10만원 이상 무료)
+  - tax_amount: 세금
+  - total_amount: subtotal - discount + shipping + tax
+  '''
+}
+
+Table order_items {
+  id int [pk, increment, note: 'auto:db']
+  order_id int [ref: > orders.id, note: 'input:required']
+  product_id int [ref: > products.id, note: 'input:required']
+  product_option_id int [ref: > product_options.id, null, note: 'input:optional']
+  product_name varchar(255) [not null, note: 'auto:server']
+  product_sku varchar(100) [not null, note: 'auto:server']
+  option_details varchar(500) [null, note: 'auto:server']
+  quantity int [not null, note: 'input:required|min:1']
+  unit_price decimal(10,2) [not null, note: 'auto:server']
+  total_price decimal(10,2) [not null, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+
+  indexes {
+    (order_id) [name: 'idx_order']
+    (product_id) [name: 'idx_product']
+  }
+
+  Note: '''
+  주문 시점의 상품 정보를 스냅샷으로 저장:
+  - product_name, product_sku: 나중에 상품이 변경되어도 주문 내역 유지
+  - unit_price: 주문 당시 가격 (할인가 적용)
+  - total_price: unit_price * quantity
+  '''
+}
+
+Table coupons {
+  id int [pk, increment, note: 'auto:db']
+  code varchar(50) [unique, not null, note: 'input:required']
+  description varchar(255) [null, note: 'input:optional']
+  discount_type enum('percentage', 'fixed') [not null, note: 'input:required']
+  discount_value decimal(10,2) [not null, note: 'input:required']
+  min_purchase_amount decimal(10,2) [default: 0, note: 'input:optional']
+  max_discount_amount decimal(10,2) [null, note: 'input:optional']
+  usage_limit int [null, note: 'input:optional']
+  used_count int [default: 0, note: 'auto:server']
+  valid_from timestamp [not null, note: 'input:required']
+  valid_until timestamp [not null, note: 'input:required']
+  is_active bool [default: true, note: 'input:optional']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+
+  indexes {
+    (code) [name: 'idx_code']
+    (valid_from, valid_until, is_active) [name: 'idx_validity']
+  }
+
+  Note: '''
+  쿠폰 검증 조건:
+  1. 코드 일치
+  2. valid_from <= 현재 <= valid_until
+  3. is_active = true
+  4. used_count < usage_limit (null이면 무제한)
+  5. 주문 금액 >= min_purchase_amount
+  '''
+}
+
+Table shipping_addresses {
+  id int [pk, increment, note: 'auto:db']
+  order_id int [ref: - orders.id, unique, note: 'input:required']
+  recipient_name varchar(255) [not null, note: 'input:required']
+  phone varchar(20) [not null, note: 'input:required|phone']
+  postal_code varchar(20) [not null, note: 'input:required']
+  address varchar(500) [not null, note: 'input:required']
+  address_detail varchar(255) [null, note: 'input:optional']
+  city varchar(100) [not null, note: 'input:required']
+  state varchar(100) [null, note: 'input:optional']
+  country varchar(100) [default: 'South Korea', note: 'input:optional']
+  delivery_memo text [null, note: 'input:optional']
+  is_default bool [default: false, note: 'input:optional']
+  created_at timestamp [note: 'auto:db']
+
+  indexes {
+    (order_id) [name: 'idx_order']
+  }
+}
+
+Table payments {
+  id int [pk, increment, note: 'auto:db']
+  order_id int [ref: > orders.id, note: 'input:required']
+  payment_method enum('card', 'bank_transfer', 'paypal', 'kakao_pay', 'naver_pay', 'cash') [not null, note: 'input:required']
+  amount decimal(12,2) [not null, note: 'input:required']
+  status enum('pending', 'completed', 'failed', 'cancelled', 'refunded') [default: 'pending', note: 'auto:server']
+  transaction_id varchar(255) [unique, null, note: 'auto:server']
+  pg_provider varchar(50) [null, note: 'auto:server']
+  card_number_masked varchar(20) [null, note: 'auto:server']
+  failure_reason text [null, note: 'auto:server']
+  paid_at timestamp [null, note: 'auto:server']
+  refunded_at timestamp [null, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+
+  indexes {
+    (order_id) [name: 'idx_order']
+    (transaction_id) [name: 'idx_transaction']
+    (status, paid_at) [name: 'idx_status_paid']
+  }
+
+  Note: '''
+  결제 완료 시 자동 처리:
+  1. status → 'completed'
+  2. transaction_id 저장
+  3. paid_at 기록
+  4. orders.payment_status → 'paid'
+  5. orders.status → 'confirmed'
+  '''
+}
+
+Table shipments {
+  id int [pk, increment, note: 'auto:db']
+  order_id int [ref: - orders.id, unique, note: 'input:required']
+  tracking_number varchar(100) [unique, null, note: 'auto:server']
+  carrier varchar(100) [null, note: 'input:optional']
+  status enum('preparing', 'in_transit', 'out_for_delivery', 'delivered', 'failed') [default: 'preparing', note: 'auto:server']
+  shipped_at timestamp [null, note: 'auto:server']
+  estimated_delivery timestamp [null, note: 'input:optional']
+  delivered_at timestamp [null, note: 'auto:server']
+  notes text [null, note: 'input:optional']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+
+  indexes {
+    (order_id) [name: 'idx_order']
+    (tracking_number) [name: 'idx_tracking']
+    (status) [name: 'idx_status']
+  }
+
+  Note: '''
+  배송 상태 자동 업데이트:
+  - shipped_at 기록 시 → orders.status = 'shipped'
+  - delivered_at 기록 시 → orders.status = 'delivered'
+  '''
+}
+
+// ==============================================
+// 4. 리뷰 & 평점
+// ==============================================
+
+Table reviews {
+  id int [pk, increment, note: 'auto:db']
+  product_id int [ref: > products.id, note: 'input:required']
+  customer_id int [ref: > customers.id, note: 'auto:server:from=auth']
+  order_id int [ref: > orders.id, null, note: 'auto:server']
+  rating int [not null, note: 'input:required|min:1|max:5']
+  title varchar(255) [null, note: 'input:optional']
+  content text [not null, note: 'input:required']
+  status enum('pending', 'approved', 'rejected') [default: 'pending', note: 'auto:server']
+  is_verified_purchase bool [default: false, note: 'auto:server']
+  helpful_count int [default: 0, note: 'auto:server']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+
+  indexes {
+    (product_id, status) [name: 'idx_product_reviews']
+    (customer_id) [name: 'idx_customer']
+    (status, created_at) [name: 'idx_status_date']
+  }
+
+  Note: '''
+  조건부 검증:
+  - order_id가 있고 해당 주문에 product_id가 있으면 → is_verified_purchase = true
+  - 실제 구매 고객만 리뷰 작성 가능 (선택적 구현)
+  '''
+}
+
+Table review_images {
+  id int [pk, increment, note: 'auto:db']
+  review_id int [ref: > reviews.id, note: 'input:required']
+  image_url varchar(500) [not null, note: 'input:required|url']
+  sort_order int [default: 0, note: 'input:optional']
+  created_at timestamp [note: 'auto:db']
+
+  indexes {
+    (review_id) [name: 'idx_review']
+  }
+}
+
+// ==============================================
+// 5. 장바구니 & 위시리스트
+// ==============================================
+
+Table cart_items {
+  id int [pk, increment, note: 'auto:db']
+  customer_id int [ref: > customers.id, note: 'auto:server:from=auth']
+  product_id int [ref: > products.id, note: 'input:required']
+  product_option_id int [ref: > product_options.id, null, note: 'input:optional']
+  quantity int [not null, note: 'input:required|min:1']
+  created_at timestamp [note: 'auto:db']
+  updated_at timestamp [note: 'auto:db']
+
+  indexes {
+    (customer_id) [name: 'idx_customer']
+    (product_id) [name: 'idx_product']
+  }
+
+  Note: '''
+  장바구니 → 주문 변환:
+  1. 재고 확인
+  2. orders 생성
+  3. order_items 생성
+  4. cart_items 삭제
+  '''
+}
+
+Table wishlists {
+  id int [pk, increment, note: 'auto:db']
+  customer_id int [ref: > customers.id, note: 'auto:server:from=auth']
+  product_id int [ref: > products.id, note: 'input:required']
+  created_at timestamp [note: 'auto:db']
+
+  indexes {
+    (customer_id, product_id) [name: 'idx_customer_product', unique]
+  }
+}
+
+// ==============================================
+// 6. 인벤토리 & 재고 관리
+// ==============================================
+
+Table inventory_transactions {
+  id int [pk, increment, note: 'auto:db']
+  product_id int [ref: > products.id, note: 'input:required']
+  product_option_id int [ref: > product_options.id, null, note: 'input:optional']
+  transaction_type enum('in', 'out', 'adjustment', 'return') [not null, note: 'input:required']
+  quantity int [not null, note: 'input:required']
+  quantity_before int [not null, note: 'auto:server']
+  quantity_after int [not null, note: 'auto:server']
+  reason varchar(255) [null, note: 'input:optional']
+  reference_type varchar(50) [null, note: 'input:optional']
+  reference_id int [null, note: 'input:optional']
+  created_by int [ref: > users.id, null, note: 'auto:server:from=auth']
+  created_at timestamp [note: 'auto:db']
+
+  indexes {
+    (product_id, created_at) [name: 'idx_product_transactions']
+    (reference_type, reference_id) [name: 'idx_reference']
+  }
+
+  Note: '''
+  재고 변동 로그:
+  - in: 입고
+  - out: 출고 (주문)
+  - adjustment: 재고 조정
+  - return: 반품
+
+  reference_type/id:
+  - 'order' + order_id
+  - 'purchase' + purchase_id
+  '''
+}
+
+// ==============================================
+// API 엔드포인트 (자동 생성)
+// ==============================================
+//
+// 상품 조회 (5개 테이블 조인):
+// GET /api/products/show/1
+// - products
+// - categories
+// - brands
+// - product_images
+// - product_options
+// - reviews (평균 평점)
+//
+// 주문 상세 (7개 테이블 조인):
+// GET /api/orders/show/1
+// - orders
+// - customers
+// - order_items → products → product_options
+// - payments
+// - shipping_addresses
+// - shipments
+//
+// 주문 생성 (복잡한 조건부 로직):
+// POST /api/orders/checkout
+// 1. 장바구니 → 주문 변환
+// 2. 재고 확인 및 차감
+// 3. 쿠폰 검증 및 할인 계산
+// 4. 회원 등급별 할인
+// 5. 배송비 계산 (10만원 이상 무료)
+// 6. 결제 생성
+// 7. 포인트 적립
+// 8. 재고 트랜잭션 로그
+//
+// ==============================================
