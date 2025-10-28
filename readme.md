@@ -30,6 +30,11 @@ Every project starts with user registration, login, roles, 2FA, and token manage
 - JSON responses
 - Middleware support
 
+✅ **Multi-Database Support**
+- SQLite (development) + MySQL (production)
+- Master-slave replication (read/write splitting)
+- Redis integration (caching/sessions)
+
 ---
 
 ## Quick Start (2 Minutes)
@@ -42,10 +47,21 @@ cp .env.example .env
 chmod +x ace.php
 ```
 
-**Edit `.env`**: Set database credentials and generate `APP_KEY`
+**Edit `.env`**: Choose database (SQLite or MySQL) and generate `APP_KEY`
 
 ```bash
-# Generate APP_KEY
+# For SQLite (fastest setup)
+DB_CONNECTION=sqlite
+DB_DATABASE=/path/to/database.sqlite
+
+# OR for MySQL
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_DATABASE=your_database
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
+
+# Generate APP_KEY (required)
 openssl rand -base64 32
 # Copy output to .env: APP_KEY=<your-generated-key>
 ```
@@ -814,12 +830,82 @@ curl http://localhost:8080/api/products/reviews/1 \
 ## Requirements
 
 - PHP 8.1+
-- MySQL 5.7+ or SQLite 3
+- MySQL 5.7+ or SQLite 3 (full compatibility with both)
 - Composer
 - OpenSSL (for key generation)
 
 Optional:
+- Redis (for caching and sessions)
 - Google Authenticator or Authy (for 2FA)
+- MySQL Master-Slave setup (read/write splitting supported)
+
+---
+
+## Database Configuration
+
+### Multi-Database Support
+
+ACE supports both **MySQL** and **SQLite** with full compatibility. All SQL queries use standard syntax that works across both databases.
+
+**SQLite** (Development/Testing):
+```env
+DB_CONNECTION=sqlite
+DB_DATABASE=/path/to/database.sqlite
+```
+
+**MySQL** (Production):
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=your_database
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
+```
+
+### Master-Slave Replication
+
+ACE automatically routes **write operations** (INSERT, UPDATE, DELETE) to the master database and **read operations** (SELECT) to slave databases.
+
+**Configuration (.env)**:
+```env
+# Master database (writes)
+DB_CONNECTION=mysql
+DB_HOST=master.example.com
+DB_PORT=3306
+DB_DATABASE=production
+DB_USERNAME=app_user
+DB_PASSWORD=secret
+
+# Slave databases (reads)
+DB_SLAVE_HOST=slave1.example.com,slave2.example.com
+DB_SLAVE_PORT=3306
+DB_SLAVE_DATABASE=production
+DB_SLAVE_USERNAME=app_user_readonly
+DB_SLAVE_PASSWORD=secret
+```
+
+**How it works:**
+- All `AuthService`, `TokenManager`, and Model write operations use `master=true` connection
+- Read-only queries automatically use slave connections
+- Transactions always use master connection
+- No code changes needed - routing is automatic
+
+**Benefits:**
+- Improved read performance (load balancing across slaves)
+- Better fault tolerance
+- Easy scalability
+
+### Redis Support
+
+Configure Redis for caching and session management:
+
+```env
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_PASSWORD=null
+REDIS_DATABASE=0
+```
 
 ---
 
